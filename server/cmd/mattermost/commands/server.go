@@ -32,8 +32,8 @@ var serverCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(serverCmd)
-	RootCmd.RunE = serverCmdF
+	RootCmd.AddCommand(serverCmd)  // ::添加了名为 server 子命令
+	RootCmd.RunE = serverCmdF  // ::设置了根命令（RootCmd）默认的执行函数为 serverCmdF。不加子命令时就会执行 serverCmdF
 }
 
 func serverCmdF(command *cobra.Command, args []string) error {
