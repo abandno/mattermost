@@ -28,6 +28,7 @@ import settings from './settings';
 import system from './system';
 import textbox from './textbox';
 import threads from './threads';
+import quote from './quote';
 
 export default combineReducers({
     admin,
@@ -55,4 +56,5 @@ export default combineReducers({
     productMenu,
     drafts,
     readout,
+    quote,
 });

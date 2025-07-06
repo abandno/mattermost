@@ -52,6 +52,8 @@ import type {PostActionComponent, PostPluginComponent} from 'types/store/plugins
 import {withPostErrorBoundary} from './post_error_boundary';
 import PostOptions from './post_options';
 import PostUserProfile from './user_profile';
+import { useDispatch } from 'react-redux';
+import { selectQuotedPost } from 'actions/views/quote';
 
 export type Props = {
     post: Post;
@@ -76,6 +78,7 @@ export type Props = {
     center: boolean;
     handleCardClick?: (post: Post) => void;
     togglePostMenu?: (opened: boolean) => void;
+    onQuoteClick?: (post: Post) => void;
     channelName?: string;
     displayName: string;
     teamDisplayName?: string;
@@ -94,6 +97,7 @@ export type Props = {
         markPostAsUnread: (post: Post, location: string) => void;
         emitShortcutReactToLastPostFrom: (emittedFrom: 'CENTER' | 'RHS_ROOT' | 'NO_WHERE') => void;
         selectPost: (post: Post) => void;
+        // selectQuotedPost: (post: Post) => void;
         selectPostFromRightHandSideSearch: (post: Post) => void;
         removePost: (post: Post) => void;
         closeRightHandSide: () => void;
@@ -392,6 +396,19 @@ function PostComponent(props: Props) {
         selectPostFromRightHandSideSearch(post);
     }, [post, selectPostFromRightHandSideSearch]);
 
+    const dispatch = useDispatch();
+
+    const handleQuoteClick = useCallback((e: React.MouseEvent) => {
+        console.log('==handleQuoteClick', post)
+        e.preventDefault();
+
+        if (!post) {
+            return;
+        }
+        // props.actions.selectQuotedPost(post);
+        dispatch(selectQuotedPost(post))
+    }, [post, props.actions.selectPost]);
+
     const handleThreadClick = useCallback((e: React.MouseEvent) => {
         if (props.currentTeam?.id === teamId) {
             handleCommentClick(e);
@@ -625,6 +642,7 @@ function PostComponent(props: Props) {
                                 teamId={teamId}
                                 handleDropdownOpened={handleDropdownOpened}
                                 handleCommentClick={handleCommentClick}
+                                handleQuoteClick={handleQuoteClick}
                                 hover={hover || a11yActive}
                                 removePost={props.actions.removePost}
                                 handleJumpClick={handleJumpClick}

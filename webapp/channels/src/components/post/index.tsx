@@ -23,7 +23,7 @@ import {getCurrentTeam, getTeam, getTeamMemberships} from 'mattermost-redux/sele
 import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/users';
 
 import {markPostAsUnread, emitShortcutReactToLastPostFrom} from 'actions/post_actions';
-import {closeRightHandSide, selectPost, setRhsExpanded, selectPostCard, selectPostFromRightHandSideSearch} from 'actions/views/rhs';
+import { closeRightHandSide, selectPost, setRhsExpanded, selectPostCard, selectPostFromRightHandSideSearch} from 'actions/views/rhs';
 import {getShortcutReactToLastPostEmittedFrom, getOneClickReactionEmojis} from 'selectors/emojis';
 import {getIsPostBeingEdited, getIsPostBeingEditedInRHS, isEmbedVisible} from 'selectors/posts';
 import {getHighlightedPostId, getRhsState, getSelectedPostCard} from 'selectors/rhs';
@@ -38,6 +38,7 @@ import type {GlobalState} from 'types/store';
 
 import {removePostCloseRHSDeleteDraft} from './actions';
 import PostComponent from './post_component';
+import { selectQuotedPost } from 'actions/views/quote';
 
 type OwnProps = {
     post?: Post | UserActivityPost;
@@ -226,6 +227,7 @@ function mapDispatchToProps(dispatch: Dispatch) {
             markPostAsUnread,
             emitShortcutReactToLastPostFrom,
             selectPost,
+            // selectQuotedPost,
             selectPostFromRightHandSideSearch,
             setRhsExpanded,
             removePost: removePostCloseRHSDeleteDraft,

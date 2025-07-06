@@ -3,6 +3,7 @@
 
 import React from 'react';
 
+import type {Post} from '@mattermost/types/posts';
 import type {ActionResult} from 'mattermost-redux/types/actions';
 
 import type {updateNewMessagesAtInChannel} from 'actions/global_actions';
@@ -136,6 +137,11 @@ export interface Props {
     toggleShouldStartFromBottomWhenUnread: () => void;
     shouldStartFromBottomWhenUnread: boolean;
     hasInaccessiblePosts: boolean;
+
+    /*
+     * Callback for quote message functionality
+     */
+    onQuoteClick?: (post: Post) => void;
 
     actions: {
 
@@ -397,6 +403,7 @@ export default class PostList extends React.PureComponent<Props, State> {
                             latestPostTimeStamp={this.props.latestPostTimeStamp}
                             isMobileView={this.props.isMobileView}
                             lastViewedAt={this.props.lastViewedAt}
+                            onQuoteClick={this.props.onQuoteClick}
                         />
                     </div>
                 </div>

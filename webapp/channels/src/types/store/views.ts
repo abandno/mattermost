@@ -224,4 +224,8 @@ export type ViewsState = {
         shouldShowPreviewOnChannelSettingsHeaderModal: boolean;
         shouldShowPreviewOnChannelSettingsPurposeModal: boolean;
     };
+
+    quote: {
+        quotedPostId: string;
+    }
 };

@@ -1,0 +1,87 @@
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
+
+.quoted-message {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: rgba(var(--center-channel-color-rgb), 0.04);
+    border-left: 3px solid var(--link-color);
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+
+    &__user-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: rgba(var(--center-channel-color-rgb), 0.75);
+        font-size: 12px;
+    }
+
+    &__username {
+        font-weight: 600;
+        color: var(--center-channel-color);
+    }
+
+    &__channel {
+        color: var(--link-color);
+    }
+
+    &__remove {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 2px;
+        color: rgba(var(--center-channel-color-rgb), 0.6);
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+            background: rgba(var(--center-channel-color-rgb), 0.08);
+            color: rgba(var(--center-channel-color-rgb), 0.8);
+        }
+
+        .icon {
+            font-size: 12px;
+        }
+    }
+
+    &__content {
+        color: var(--center-channel-color);
+        word-break: break-word;
+
+        .markdown__paragraph {
+            margin: 0;
+        }
+
+        .markdown__heading {
+            margin: 0 0 4px 0;
+        }
+
+        .markdown__list {
+            margin: 0;
+        }
+
+        .markdown__table {
+            margin: 0;
+        }
+
+        .markdown__code {
+            font-size: 12px;
+        }
+    }
+} 

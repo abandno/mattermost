@@ -6,6 +6,7 @@ import React, {lazy, useCallback, useEffect, useMemo, useRef, useState} from 're
 import {FormattedMessage, useIntl} from 'react-intl';
 import {useDispatch, useSelector} from 'react-redux';
 
+import type {Post} from '@mattermost/types/posts';
 import type {ServerError} from '@mattermost/types/errors';
 import type {SchedulingInfo} from '@mattermost/types/schedule_post';
 
@@ -45,6 +46,7 @@ import type {TextboxElement} from 'components/textbox';
 import type TextboxClass from 'components/textbox/textbox';
 import {OnboardingTourSteps, OnboardingTourStepsForGuestUsers, TutorialTourName} from 'components/tours/constant';
 import {SendMessageTour} from 'components/tours/onboarding_tour';
+import QuotedMessage from 'components/quoted_message/quoted_message';
 
 import Constants, {
     Locations,
@@ -86,6 +88,8 @@ import useTextboxFocus from './use_textbox_focus';
 import useUploadFiles from './use_upload_files';
 
 import './advanced_text_editor.scss';
+import { set } from 'lodash';
+import { selectQuotedPost } from 'actions/views/quote';
 
 const FileLimitStickyBanner = makeAsyncComponent('FileLimitStickyBanner', lazy(() => import('components/file_limit_sticky_banner')));
 
@@ -112,6 +116,8 @@ export type Props = {
      * Used by plugins to act after the post is made
      */
     afterSubmit?: (response: SubmitPostReturnType) => void;
+
+    selectQuotedPost?;
 }
 
 const AdvancedTextEditor = ({
@@ -221,6 +227,10 @@ const AdvancedTextEditor = ({
     const [isMessageLong, setIsMessageLong] = useState(false);
     const [renderScrollbar, setRenderScrollbar] = useState(false);
     const [keepEditorInFocus, setKeepEditorInFocus] = useState(false);
+    const quotedPostId = useSelector((state: GlobalState) => {
+        console.log('==state.views', state.views);
+        return state.views.quote?.quotedPostId
+    })
 
     const readOnlyChannel = !canPost;
     const hasDraftMessage = Boolean(draft.message);
@@ -604,6 +614,10 @@ const AdvancedTextEditor = ({
         };
     }, [channelId, rootId]);
 
+    // useEffect(() => {
+    //     setLocalQuotedPost(quotedPost);
+    // }, [quotedPost]);
+
     const disableSendButton = Boolean(isDisabled || (!draft.message.trim().length && !draft.fileInfos.length)) || !isValidPersistentNotifications;
     const sendButton = readOnlyChannel || isInEditMode ? null : (
         <SendButton
@@ -776,6 +790,13 @@ const AdvancedTextEditor = ({
                         className='AdvancedTextEditor__cell a11y__region'
                     >
                         {!isInEditMode && priorityLabels}
+                        {quotedPostId && (
+                            <QuotedMessage
+                                // post={localQuotedPost}
+                                currentUserId={currentUserId}
+                                onRemove={() => dispatch(selectQuotedPost(null))}
+                            />
+                        )}
                         <Textbox
                             hasLabels={isInEditMode ? false : Boolean(priorityLabels)}
                             suggestionList={location === Locations.RHS_COMMENT ? RhsSuggestionList : SuggestionList}

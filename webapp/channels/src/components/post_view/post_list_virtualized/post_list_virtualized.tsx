@@ -24,6 +24,7 @@ import {getPreviousPostId, getLatestPostId} from 'utils/post_utils';
 import * as Utils from 'utils/utils';
 
 import LatestPostReader from './latest_post_reader';
+import { Post } from '@mattermost/types/src/posts';
 
 const OVERSCAN_COUNT_BACKWARD = 80;
 const OVERSCAN_COUNT_FORWARD = 80;
@@ -119,6 +120,8 @@ type Props = {
 
         toggleShouldStartFromBottomWhenUnread: () => void;
     };
+
+    onQuoteClick?: (post: Post) => void;
 }
 
 type State = {
@@ -366,6 +369,7 @@ export default class PostList extends React.PureComponent<Props, State> {
                     loadOlderPosts={this.props.actions.loadOlderPosts}
                     loadNewerPosts={this.props.actions.loadNewerPosts}
                     togglePostMenu={this.togglePostMenu}
+                    onQuoteClick={this.props.onQuoteClick}
                     isLastPost={isLastPost}
                     loadingNewerPosts={this.props.loadingNewerPosts}
                     loadingOlderPosts={this.props.loadingOlderPosts}

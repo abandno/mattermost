@@ -19,11 +19,14 @@ import DotMenu from 'components/dot_menu';
 import PostFlagIcon from 'components/post_view/post_flag_icon';
 import PostReaction from 'components/post_view/post_reaction';
 import PostRecentReactions from 'components/post_view/post_recent_reactions';
+import QuoteIcon from 'components/widgets/icons/quote_icon';
 
 import {Locations, Constants} from 'utils/constants';
 import {isSystemMessage, fromAutoResponder} from 'utils/post_utils';
 
 import type {PostActionComponent} from 'types/store/plugins';
+import {useQuoteContext} from 'contexts/quote_context';
+import QuotePostIcon from 'components/common/quote_post_icon';
 
 type Props = {
     post: Post;
@@ -37,6 +40,7 @@ type Props = {
     handleCommentClick?: (e: React.MouseEvent) => void;
     handleJumpClick?: (e: React.MouseEvent) => void;
     handleDropdownOpened?: (e: boolean) => void;
+    handleQuoteClick?: (e: React.MouseEvent) => void;
     collapsedThreadsEnabled?: boolean;
     shouldShowActionsMenu?: boolean;
     oneClickReactionsEnabled?: boolean;
@@ -175,6 +179,21 @@ const PostOptions = (props: Props): JSX.Element => {
         );
     }
 
+    // Quote message icon
+    const showQuoteIcon = !systemMessage && !isReadOnly && !isEphemeral && !post.failed && !channelIsArchived && props.handleQuoteClick;
+    console.log('==showQuoteIcon', !!showQuoteIcon);
+    let quoteIcon;
+    if (showQuoteIcon) {
+        quoteIcon = (
+            <li>
+                <QuotePostIcon
+                    postId={post.id}
+                    handleQuoteClick={props.handleQuoteClick}
+                />
+            </li>
+        );
+    }
+
     let flagIcon: ReactNode = null;
     if (!isMobileView && (!isEphemeral && !post.failed && !systemMessage)) {
         flagIcon = (
@@ -293,6 +312,7 @@ const PostOptions = (props: Props): JSX.Element => {
                 {!collapsedThreadsEnabled && !showRecentlyUsedReactions && dotMenu}
                 {showRecentReactions}
                 {postReaction}
+                {quoteIcon}
                 {flagIcon}
                 {pluginItems}
                 {actionsMenu}

@@ -33,6 +33,7 @@ export type PostListRowProps = {
     loadOlderPosts: () => void;
     loadNewerPosts: () => void;
     togglePostMenu: (opened: boolean) => void;
+    onQuoteClick?: (post: Post) => void;
     post: Post;
     currentUserId: UserProfile['id'];
 
@@ -191,6 +192,7 @@ export default class PostListRow extends React.PureComponent<PostListRowProps> {
             <PostComponent
                 post={this.props.post}
                 location={Locations.CENTER}
+                onQuoteClick={this.props.onQuoteClick}
                 {...postProps}
             />
         );

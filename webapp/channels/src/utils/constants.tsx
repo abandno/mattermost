@@ -190,6 +190,7 @@ export const ActionTypes = keyMirror({
     SET_PRODUCT_SWITCHER_OPEN: null,
     RECEIVED_FOCUSED_POST: null,
     SELECT_POST: null,
+    SELECT_QUOTE_POST: null,
     HIGHLIGHT_REPLY: null,
     CLEAR_HIGHLIGHT_REPLY: null,
     SELECT_POST_CARD: null,

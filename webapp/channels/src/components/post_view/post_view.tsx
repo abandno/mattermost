@@ -3,6 +3,8 @@
 
 import React from 'react';
 
+import type {Post} from '@mattermost/types/posts';
+
 import LoadingScreen from 'components/loading_screen';
 
 import {Preferences} from 'utils/constants';
@@ -15,6 +17,7 @@ type Props = {
     channelId: string;
     focusedPostId?: string;
     unreadScrollPosition: string;
+    onQuoteClick?: (post: Post) => void;
 };
 
 interface State {
@@ -99,6 +102,7 @@ export default class PostView extends React.PureComponent<Props, State> {
                     shouldStartFromBottomWhenUnread={this.state.shouldStartFromBottomWhenUnread}
                     toggleShouldStartFromBottomWhenUnread={this.toggleShouldStartFromBottomWhenUnread}
                     focusedPostId={this.props.focusedPostId}
+                    onQuoteClick={this.props.onQuoteClick}
                 />
             </div>
         );

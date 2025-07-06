@@ -5,6 +5,8 @@ import React, {lazy} from 'react';
 import {FormattedMessage} from 'react-intl';
 import type {RouteComponentProps} from 'react-router-dom';
 
+import type {Post} from '@mattermost/types/posts';
+
 import {makeAsyncComponent} from 'components/async_load';
 import deferComponentRender from 'components/deferComponentRender';
 import {DropOverlayIdCenterChannel} from 'components/file_upload_overlay/file_upload_overlay';

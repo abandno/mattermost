@@ -455,6 +455,12 @@ if (targetIsDevServer) {
             historyApiFallback: {
                 index: '/static/root.html',
             },
+            client: {
+                overlay: {
+                    errors: false,
+                    warnings: false,
+                },
+            },
         },
         performance: false,
         optimization: {
