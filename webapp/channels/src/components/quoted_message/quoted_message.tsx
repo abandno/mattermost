@@ -66,6 +66,8 @@ export default function QuotedMessage({
                         <i className='icon icon-close' />
                     </button>
                 )}
+                {/* 灰色不显眼的竖线分隔符 */}
+                <div className='divider-char'>|</div>
                 <div className='quoted-message__user-info'>
                     {/* <Avatar
                         username={post.user_id}
@@ -75,23 +77,24 @@ export default function QuotedMessage({
                     <span className='quoted-message__username'>
                         {displayName}
                     </span>
-                    {channel && (
+                    {/* {channel && (
                         <span className='quoted-message__channel'>
                             #{channel.display_name}
                         </span>
-                    )}
-                    <Timestamp
+                    )} */}
+                    {/* <Timestamp
                         value={quotePost.create_at}
                         units={['now', 'minute', 'hour']}
                         useTime={false}
-                    />
+                    /> */}
+                    <div className='divider-char'>:</div>
                 </div>
             </div>
             <div className='quoted-message__content'>
                 <PostMarkdown
                     message={quotePost.message}
                     channelId={quotePost.channel_id}
-                    imageProps={{hideUtilities: true}}
+                    imageProps={{ hideUtilities: true }}
                 />
             </div>
         </div>

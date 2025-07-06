@@ -4,18 +4,27 @@
 .quoted-message {
     display: flex;
     flex-direction: column;
-    margin-bottom: 8px;
-    padding: 8px 12px;
+    // margin-bottom: 8px;
+    padding: 2px 4px;
     background: rgba(var(--center-channel-color-rgb), 0.04);
     border-left: 3px solid var(--link-color);
     border-radius: 4px;
     font-size: 13px;
     line-height: 1.4;
 
+    .divider-char {
+        margin: 0 2px;
+        color: grey;
+    }
+
+    p {
+        margin: 0;
+    }
+
     &__header {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
         margin-bottom: 4px;
     }
 

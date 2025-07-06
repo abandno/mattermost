@@ -14,7 +14,7 @@ function selectQuotedPostId(state = '', action: MMAction) {
         case ActionTypes.SELECT_QUOTE_POST:
             return action.postId;
     }
-    return '';
+    return state;  // 返回 state , 关心的类型的字段就不会改变, 神奇!!
 }
 
 export default combineReducers({
