@@ -23,12 +23,7 @@ type Props = {
     };
 }
 
-const AdvancedCreatePost = ({
-    channel,
-    selected,
-    actions,
-    ...props
-}: Props) => {
+const AdvancedCreatePost = () => {
     const currentChannelId = useSelector(getCurrentChannelId);
 
     if (!currentChannelId) {
@@ -40,7 +35,6 @@ const AdvancedCreatePost = ({
             location={Locations.CENTER}
             rootId={''}
             channelId={currentChannelId}
-            quotedPost={selected}
         />
     );
 };

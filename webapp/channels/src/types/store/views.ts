@@ -13,7 +13,8 @@ import type {LhsViewState} from './lhs';
 import type {RhsViewState} from './rhs';
 
 import type {DraggingState} from '.';
-
+import type {CommentLocation} from 'types';
+import { Locations } from 'utils/constants';
 export type ModalFilters = {
     roles?: string[];
     channel_roles?: string[];
@@ -226,6 +227,8 @@ export type ViewsState = {
     };
 
     quote: {
-        quotedPostId: string;
-    }
+        quotedPostId: {
+            [location in keyof typeof Locations | string]: string;
+        }
+    };
 };

@@ -9,25 +9,25 @@ import { bindActionCreators, Dispatch } from 'redux';
 import { selectPost } from 'actions/views/rhs';
 import { selectQuotedPost } from 'actions/views/quote';
 
-// export default AdvancedCreatePost;
+export default AdvancedCreatePost;
 
-function mapStateToProps(state: GlobalState) {
-    const selected = getSelectedPost(state);
-    const channel = getSelectedChannel(state);
+// function mapStateToProps(state: GlobalState) {
+//     const selected = getSelectedPost(state);
+//     const channel = getSelectedChannel(state);
 
-    return {
-        selected,
-        channel,
-    };
-}
+//     return {
+//         selected,
+//         channel,
+//     };
+// }
 
-function mapDispatchToProps(dispatch: Dispatch) {
-    return {
-        actions: bindActionCreators({
-            selectPost,
-            selectQuotedPost,
-        }, dispatch),
-    };
-}
+// function mapDispatchToProps(dispatch: Dispatch) {
+//     return {
+//         actions: bindActionCreators({
+//             selectPost,
+//             selectQuotedPost,
+//         }, dispatch),
+//     };
+// }
 
-export default connect(mapStateToProps, mapDispatchToProps)(AdvancedCreatePost);
+// export default connect(mapStateToProps, mapDispatchToProps)(AdvancedCreatePost);

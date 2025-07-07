@@ -5,18 +5,28 @@ import { combineReducers } from 'redux';
 
 
 import type { MMAction } from 'types/store';
-import { ActionTypes } from 'utils/constants';
+import { ActionTypes, Locations } from 'utils/constants';
 
+const initialState = {
+    [Locations.CENTER]: null,
+    // RHS_ROOT --> RHS_COMMENT
+    [Locations.RHS_COMMENT]: null,
+};
 
-function selectQuotedPostId(state = '', action: MMAction) {
+function selectQuotedPostId(state = initialState, action: MMAction) {
     console.log('==selectQuotedPostId reducer', action);
     switch (action.type) {
         case ActionTypes.SELECT_QUOTE_POST:
-            return action.postId;
+            const loc = action.location == Locations.RHS_ROOT ? Locations.RHS_COMMENT : action.location;
+            return {
+                ...state,
+                [loc]: action.postId,
+            };
     }
-    return state;  // 返回 state , 关心的类型的字段就不会改变, 神奇!!
+    return state;
 }
 
 export default combineReducers({
+    // state.views.quote.quotedPostId.[location]
     quotedPostId: selectQuotedPostId,
 });

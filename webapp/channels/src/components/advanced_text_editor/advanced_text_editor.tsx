@@ -116,8 +116,6 @@ export type Props = {
      * Used by plugins to act after the post is made
      */
     afterSubmit?: (response: SubmitPostReturnType) => void;
-
-    selectQuotedPost?;
 }
 
 const AdvancedTextEditor = ({
@@ -228,8 +226,8 @@ const AdvancedTextEditor = ({
     const [renderScrollbar, setRenderScrollbar] = useState(false);
     const [keepEditorInFocus, setKeepEditorInFocus] = useState(false);
     const quotedPostId = useSelector((state: GlobalState) => {
-        console.log('==state.views', state.views);
-        return state.views.quote?.quotedPostId
+        console.log('==state.views.quote', state.views.quote)
+        return state.views.quote.quotedPostId[location]
     })
 
     const readOnlyChannel = !canPost;
@@ -297,6 +295,7 @@ const AdvancedTextEditor = ({
         handleDraftChange({
             ...draft,
             message: res.message,
+            quotedPostId: quotedPostId,
         });
 
         setTimeout(() => {
@@ -614,10 +613,6 @@ const AdvancedTextEditor = ({
         };
     }, [channelId, rootId]);
 
-    // useEffect(() => {
-    //     setLocalQuotedPost(quotedPost);
-    // }, [quotedPost]);
-
     const disableSendButton = Boolean(isDisabled || (!draft.message.trim().length && !draft.fileInfos.length)) || !isValidPersistentNotifications;
     const sendButton = readOnlyChannel || isInEditMode ? null : (
         <SendButton
@@ -792,9 +787,9 @@ const AdvancedTextEditor = ({
                         {!isInEditMode && priorityLabels}
                         {quotedPostId && (
                             <QuotedMessage
-                                // post={localQuotedPost}
+                                location={location}
                                 currentUserId={currentUserId}
-                                onRemove={() => dispatch(selectQuotedPost(null))}
+                                onRemove={() => dispatch(selectQuotedPost(null, location))}
                             />
                         )}
                         <Textbox

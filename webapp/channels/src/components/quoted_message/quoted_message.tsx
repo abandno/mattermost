@@ -13,7 +13,7 @@ import PostMarkdown from 'components/post_markdown';
 import Avatar from 'components/widgets/users/avatar';
 import Timestamp from 'components/timestamp';
 
-import {Constants} from 'utils/constants';
+import {Locations} from 'utils/constants';
 import * as Utils from 'utils/utils';
 
 import './quoted_message.scss';
@@ -22,25 +22,22 @@ import { useSelector } from 'react-redux';
 import { getPost } from 'mattermost-redux/selectors/entities/posts';
 
 interface Props {
+    location: keyof typeof Locations | string;
     currentUserId: string;
     onRemove?: () => void;
 }
 
 export default function QuotedMessage({
+    location,
     currentUserId,
     onRemove,
 }: Props) {
-    const quotedPostId = useSelector((state: GlobalState) => {
-        console.log('==state.views', state.views)
-        return state.views.quote?.quotedPostId
+    const quotedPostId = useSelector((state: GlobalState) => { 
+        return state.views.quote.quotedPostId[location];
     })
-    if (!quotedPostId) {
-        return null;
-    }
+    if (!quotedPostId) return null;
     const quotePost: Post = useSelector((state: GlobalState) => getPost(state, quotedPostId));
-    if (!quotePost) {
-        return null;
-    }
+    if (!quotePost) return null;
 
     const channel = useSelector((state: GlobalState) => getChannel(state, quotePost.channel_id));
     const getDisplayName = useMemo(makeGetDisplayName, []);
