@@ -7,7 +7,6 @@ import AdvancedCreatePost from './advanced_create_post';
 import { GlobalState } from 'types/store';
 import { bindActionCreators, Dispatch } from 'redux';
 import { selectPost } from 'actions/views/rhs';
-import { selectQuotedPost } from 'actions/views/quote';
 
 export default AdvancedCreatePost;
 

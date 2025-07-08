@@ -38,7 +38,6 @@ import type {GlobalState} from 'types/store';
 
 import {removePostCloseRHSDeleteDraft} from './actions';
 import PostComponent from './post_component';
-import { selectQuotedPost } from 'actions/views/quote';
 
 type OwnProps = {
     post?: Post | UserActivityPost;

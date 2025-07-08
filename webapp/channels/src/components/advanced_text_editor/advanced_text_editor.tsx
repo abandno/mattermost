@@ -89,7 +89,7 @@ import useUploadFiles from './use_upload_files';
 
 import './advanced_text_editor.scss';
 import { set } from 'lodash';
-import { selectQuotedPost } from 'actions/views/quote';
+import { QuoteStore } from 'store/simple/quote';
 
 const FileLimitStickyBanner = makeAsyncComponent('FileLimitStickyBanner', lazy(() => import('components/file_limit_sticky_banner')));
 
@@ -226,8 +226,9 @@ const AdvancedTextEditor = ({
     const [renderScrollbar, setRenderScrollbar] = useState(false);
     const [keepEditorInFocus, setKeepEditorInFocus] = useState(false);
     const quotedPostId = useSelector((state: GlobalState) => {
-        console.log('==state.views.quote', state.views.quote)
-        return state.views.quote.quotedPostId[location]
+        // console.log('==AdvancedTextEditor state.views.quote', state.views.quote, 'location', location)
+        // return state.views.quote.quotedPostId[location]
+        return QuoteStore.quotedPostIdSelector(state, location);
     })
 
     const readOnlyChannel = !canPost;
@@ -250,6 +251,9 @@ const AdvancedTextEditor = ({
             clearTimeout(saveDraftFrame.current);
         }
 
+        // 塞入被引用消息id
+        draftToChange.quotedPostId = quotedPostId
+        // console.log('==handleDraftChange draftToChange', draftToChange, quotedPostId)
         setDraft(draftToChange);
 
         const saveDraft = () => {
@@ -283,7 +287,7 @@ const AdvancedTextEditor = ({
         }
 
         storedDrafts.current[draftToChange.rootId || draftToChange.channelId] = draftToChange;
-    }, [dispatch]);
+    }, [dispatch, quotedPostId]);
 
     const applyMarkdown = useCallback((params: ApplyMarkdownOptions) => {
         if (showPreview) {
@@ -295,7 +299,6 @@ const AdvancedTextEditor = ({
         handleDraftChange({
             ...draft,
             message: res.message,
-            quotedPostId: quotedPostId,
         });
 
         setTimeout(() => {
@@ -352,6 +355,14 @@ const AdvancedTextEditor = ({
         isValidPersistentNotifications,
         onSubmitCheck: prioritySubmitCheck,
     } = usePriority(draft, handleDraftChange, focusTextbox, showPreview);
+
+    // 包装 afterSubmit, 清除引用消息
+    const afterSubmitWrap = useCallback(async (response: any) => { 
+        console.log('==afterSubmitWrap', response)
+        dispatch(QuoteStore.quotedPostAction(null, location));
+        afterSubmit?.(response);
+    }, [afterSubmit]);
+
     const [handleSubmit, errorClass] = useSubmit(
         draft,
         postError,
@@ -365,7 +376,8 @@ const AdvancedTextEditor = ({
         handleDraftChange,
         prioritySubmitCheck,
         undefined,
-        afterSubmit,
+        // afterSubmit,
+        afterSubmitWrap,
         undefined,
         isInEditMode,
         postId,
@@ -789,7 +801,7 @@ const AdvancedTextEditor = ({
                             <QuotedMessage
                                 location={location}
                                 currentUserId={currentUserId}
-                                onRemove={() => dispatch(selectQuotedPost(null, location))}
+                                onRemove={() => dispatch(QuoteStore.quotedPostAction(null, location))}
                             />
                         )}
                         <Textbox

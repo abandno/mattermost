@@ -20,6 +20,7 @@ import './quoted_message.scss';
 import { GlobalState } from 'types/store';
 import { useSelector } from 'react-redux';
 import { getPost } from 'mattermost-redux/selectors/entities/posts';
+import { QuoteStore } from 'store/simple/quote';
 
 interface Props {
     location: keyof typeof Locations | string;
@@ -32,11 +33,12 @@ export default function QuotedMessage({
     currentUserId,
     onRemove,
 }: Props) {
-    const quotedPostId = useSelector((state: GlobalState) => { 
-        return state.views.quote.quotedPostId[location];
-    })
-    if (!quotedPostId) return null;
-    const quotePost: Post = useSelector((state: GlobalState) => getPost(state, quotedPostId));
+    // const quotedPostId = useSelector((state: GlobalState) => { 
+    //     return state.views.quote.quotedPostId[location];
+    // })
+    // if (!quotedPostId) return null;
+    // const quotePost: Post = useSelector((state: GlobalState) => getPost(state, quotedPostId));
+    const quotePost: Post | null = useSelector((state: GlobalState) => QuoteStore.quotedPostSelector(state, location));
     if (!quotePost) return null;
 
     const channel = useSelector((state: GlobalState) => getChannel(state, quotePost.channel_id));

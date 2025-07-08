@@ -53,8 +53,8 @@ import {withPostErrorBoundary} from './post_error_boundary';
 import PostOptions from './post_options';
 import PostUserProfile from './user_profile';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectQuotedPost } from 'actions/views/quote';
 import { GlobalState } from 'types/store';
+import { QuoteStore } from 'store/simple/quote';
 
 export type Props = {
     post: Post;
@@ -127,7 +127,7 @@ export type Props = {
 };
 
 function PostComponent(props: Props) {
-    console.log('==PostComponent', props)
+    // console.log('==PostComponent', props)
     const {post, shouldHighlight, togglePostMenu} = props;
 
     const isSearchResultItem = (props.matches && props.matches.length > 0) || props.isMentionSearch || (props.term && props.term.length > 0);
@@ -410,7 +410,7 @@ function PostComponent(props: Props) {
             return;
         }
         // props.actions.selectQuotedPost(post);
-        dispatch(selectQuotedPost(post, props.location))
+        dispatch(QuoteStore.quotedPostAction(post, props.location))
     }, [post, props.actions.selectPost]);
 
     const handleThreadClick = useCallback((e: React.MouseEvent) => {

@@ -181,7 +181,7 @@ const PostOptions = (props: Props): JSX.Element => {
 
     // Quote message icon
     const showQuoteIcon = !systemMessage && !isReadOnly && !isEphemeral && !post.failed && !channelIsArchived && props.handleQuoteClick;
-    console.log('==showQuoteIcon', !!showQuoteIcon);
+    // console.log('==showQuoteIcon', !!showQuoteIcon);
     let quoteIcon;
     if (showQuoteIcon) {
         quoteIcon = (

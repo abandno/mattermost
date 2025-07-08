@@ -21,6 +21,7 @@ export type GlobalState = BaseGlobalState & {
     plugins: PluginsState;
     storage: StorageState;
     views: ViewsState;
+    simple: any;
 };
 
 /**
