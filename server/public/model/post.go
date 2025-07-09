@@ -114,6 +114,10 @@ type Post struct {
 	HasReactions  bool            `json:"has_reactions,omitempty"`
 	RemoteId      *string         `json:"remote_id,omitempty"`
 
+	// Quote reference fields
+	Qrid string `json:"qrid"` // Quote root ID - the root post of the quoted thread
+	Qpid string `json:"qpid"` // Quote post ID - the specific post being quoted
+
 	// Transient data populated before sending a post to the client
 	ReplyCount   int64         `json:"reply_count"`
 	LastReplyAt  int64         `json:"last_reply_at"`
@@ -144,6 +148,8 @@ func (o *Post) Auditable() map[string]any {
 		"file_ids":        o.FileIds,
 		"pending_post_id": o.PendingPostId,
 		"remote_id":       o.RemoteId,
+		"qrid":            o.Qrid,
+		"qpid":            o.Qpid,
 		"reply_count":     o.ReplyCount,
 		"last_reply_at":   o.LastReplyAt,
 		"is_following":    o.IsFollowing,

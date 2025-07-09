@@ -54,7 +54,7 @@ import PostOptions from './post_options';
 import PostUserProfile from './user_profile';
 import { useDispatch, useSelector } from 'react-redux';
 import { GlobalState } from 'types/store';
-import { QuoteStore } from 'store/simple/quote';
+import { quotedPostAction } from 'store/simple/quote';
 
 export type Props = {
     post: Post;
@@ -410,7 +410,7 @@ function PostComponent(props: Props) {
             return;
         }
         // props.actions.selectQuotedPost(post);
-        dispatch(QuoteStore.quotedPostAction(post, props.location))
+        dispatch(quotedPostAction(post, props.location))
     }, [post, props.actions.selectPost]);
 
     const handleThreadClick = useCallback((e: React.MouseEvent) => {

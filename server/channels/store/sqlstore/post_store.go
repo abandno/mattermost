@@ -73,6 +73,8 @@ func postSliceColumnsWithTypes() []struct {
 		{"FileIds", reflect.Slice},
 		{"HasReactions", reflect.Bool},
 		{"RemoteId", reflect.String},
+		{"Qrid", reflect.String},
+		{"Qpid", reflect.String},
 	}
 }
 
@@ -96,6 +98,8 @@ func postToSlice(post *model.Post) []any {
 		model.ArrayToJSON(post.FileIds),
 		post.HasReactions,
 		post.RemoteId,
+		post.Qrid,
+		post.Qpid,
 	}
 }
 
@@ -377,7 +381,9 @@ func (s *SqlPostStore) Update(rctx request.CTX, newPost *model.Post, oldPost *mo
 			Filenames=:Filenames,
 			FileIds=:FileIds,
 			HasReactions=:HasReactions,
-			RemoteId=:RemoteId
+			RemoteId=:RemoteId,
+			Qrid=:Qrid,
+			Qpid=:Qpid
 		WHERE
 			Id=:Id
 		`, newPost); err != nil {
@@ -448,7 +454,9 @@ func (s *SqlPostStore) OverwriteMultiple(rctx request.CTX, posts []*model.Post) 
 					Filenames=:Filenames,
 					FileIds=:FileIds,
 					HasReactions=:HasReactions,
-					RemoteId=:RemoteId
+					RemoteId=:RemoteId,
+					Qrid=:Qrid,
+					Qpid=:Qpid
 				WHERE
 					Id=:Id
 			`, post); err2 != nil {

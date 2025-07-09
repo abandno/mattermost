@@ -31,7 +31,8 @@ export type PostDraft = {
         };
         files?: FileInfo[];
     };
-    quotedPostId?: string;
+    qrid?: string;
+    qpid?: string;
 };
 
 export function isPostDraftEmpty(draft: PostDraft): boolean {

@@ -26,17 +26,17 @@ function quotedPostIdReducer(state = initialState, action: MMAction) {
     return state;
 }
 
-const reducers = combineReducers({
+export const reducers = combineReducers({
     // state.views.quote.quotedPostId.[location]
     quotedPostId: quotedPostIdReducer,
 });
 
 
-const quotedPostAction = (
+export const quotedPostAction = (
     post: Post | null,
     location: keyof typeof Locations | string,
     previousState?: any) => {
-    console.log('==actions selectQuotedPost', location)
+    // console.log('==actions selectQuotedPost', location)
     return {
         type: ActionTypes.SELECT_QUOTE_POST,
         postId: post && (post.root_id || post.id),
@@ -48,12 +48,16 @@ const quotedPostAction = (
     }
 }
 
-const quotedPostIdSelector = (state: GlobalState, location: string) => {
+export function removeQuotedPostAction(location: keyof typeof Locations | string) {
+    return quotedPostAction(null, location);
+}
+
+export const quotedPostIdSelector = (state: GlobalState, location: string) => {
     // console.log('quotedPostIdSelector', state.simple.quote.quotedPostId, location);
     return state.simple.quote.quotedPostId[location];
 }
 
-const quotedPostSelector = (state: GlobalState, location: string) => {
+export const quotedPostSelector = (state: GlobalState, location: string) => {
     const quotedPostId = quotedPostIdSelector(state, location);
     if (!quotedPostId) return null;
     return getPost(state, quotedPostId);
@@ -61,13 +65,13 @@ const quotedPostSelector = (state: GlobalState, location: string) => {
 
 
 // export ====
-export { reducers };
+// export { reducers };
 // const actions = { quotedPostAction };
 // const selectors = { quotedPostIdSelector, quotedPostSelector };
 
-export const QuoteStore = {
-    reducers,
-    quotedPostAction,
-    quotedPostIdSelector,
-    quotedPostSelector
-};
+// export {
+//     reducers,
+//     quotedPostAction,
+//     quotedPostIdSelector,
+//     quotedPostSelector
+// };

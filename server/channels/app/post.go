@@ -350,6 +350,13 @@ func (a *App) CreatePost(c request.CTX, post *model.Post, channel *model.Channel
 		post.CreateAt = model.GetMillis()
 	}
 
+	// Handle quote references if present
+	if post.Qpid != "" {
+		if err := a.handleQuoteReferences(c, post); err != nil {
+			return nil, err
+		}
+	}
+
 	post = a.getEmbedsAndImages(c, post, true)
 	previewPost := post.GetPreviewPost()
 	if previewPost != nil {
@@ -2817,4 +2824,72 @@ func (a *App) SendTestMessage(c request.CTX, userID string) (*model.Post, *model
 	}
 
 	return post, nil
+}
+
+// handleQuoteReferences processes quote references for a post
+func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppError {
+	// Validate the quoted post exists and user has permission to read it
+	quotedPost, err := a.GetSinglePost(c, post.Qpid, false)
+	if err != nil {
+		return model.NewAppError("handleQuoteReferences", "api.post.quote.invalid_post.app_error", nil, "quoted_post_id="+post.Qpid, http.StatusBadRequest).Wrap(err)
+	}
+
+	// Check if user has permission to read the quoted post's channel
+	channel, err := a.GetChannel(c, quotedPost.ChannelId)
+	if err != nil {
+		return model.NewAppError("handleQuoteReferences", "api.post.quote.channel_not_found.app_error", nil, "channel_id="+quotedPost.ChannelId, http.StatusBadRequest).Wrap(err)
+	}
+
+	if !a.HasPermissionToReadChannel(c, post.UserId, channel) {
+		return model.NewAppError("handleQuoteReferences", "api.post.quote.no_permission.app_error", nil, "user_id="+post.UserId+" channel_id="+channel.Id, http.StatusForbidden)
+	}
+
+	// quotedPost 没有 qrid , 说明它自己就是root
+	if quotedPost.Qrid == "" {
+		post.Qrid = quotedPost.Id
+	} else {
+		post.Qrid = quotedPost.Qrid
+	}
+
+	// Store quote information in props for backward compatibility
+	quoteInfo := map[string]interface{}{
+		"quoted_user_id": quotedPost.UserId,
+	}
+	post.AddProp("quote", quoteInfo)
+
+	// Increment quote count for the quoted post
+	if err := a.incrementQuoteCount(c, post.Qpid); err != nil {
+		c.Logger().Warn("Failed to increment quote count for quoted post", mlog.String("quoted_post_id", post.Qpid), mlog.Err(err))
+	}
+
+	// Increment quote count for the quote root post (if different from quoted post)
+	if post.Qrid != post.Qpid {
+		if err := a.incrementQuoteCount(c, post.Qrid); err != nil {
+			c.Logger().Warn("Failed to increment quote count for quote root post", mlog.String("quote_root_id", post.Qrid), mlog.Err(err))
+		}
+	}
+
+	return nil
+}
+
+// incrementQuoteCount increments the quote count for a post
+func (a *App) incrementQuoteCount(c request.CTX, postId string) *model.AppError {
+	// Get the current post
+	post, err := a.GetSinglePost(c, postId, false)
+	if err != nil {
+		return err
+	}
+
+	// Get current quote count from props
+	currentCount := 0
+	if quoteCount, ok := post.GetProp("quote_count").(float64); ok {
+		currentCount = int(quoteCount)
+	}
+
+	// Increment and save
+	post.AddProp("quote_count", currentCount+1)
+
+	// Update the post
+	_, err = a.UpdatePost(c, post, model.DefaultUpdatePostOptions())
+	return err
 }
