@@ -3,7 +3,7 @@
 
 .quoted-message {
     display: flex;
-    flex-direction: column;
+    // flex-direction: column;
     // margin-bottom: 8px;
     padding: 2px 4px;
     background: rgba(var(--center-channel-color-rgb), 0.04);
@@ -11,10 +11,11 @@
     border-radius: 4px;
     font-size: 13px;
     line-height: 1.4;
+    color: rgba(var(--center-channel-color-rgb), 0.6);
 
     .divider-char {
         margin: 0 2px;
-        color: grey;
+        color: rgba(var(--center-channel-color-rgb), 0.3);
     }
 
     p {
@@ -70,7 +71,6 @@
     }
 
     &__content {
-        color: var(--center-channel-color);
         word-break: break-word;
 
         .markdown__paragraph {
@@ -90,6 +90,28 @@
         }
 
         .markdown__code {
+            font-size: 12px;
+        }
+    }
+
+    &__content-text {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.4;
+        color: rgba(var(--center-channel-color-rgb), 0.8);
+        word-break: break-word;
+        white-space: pre-wrap;
+    }
+}
+
+.quoted-post-display {
+    margin-bottom: 8px;
+    
+    .quoted-message {
+        margin: 0;
+        font-size: 12px;
+        
+        &__content-text {
             font-size: 12px;
         }
     }

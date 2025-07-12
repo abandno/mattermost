@@ -342,6 +342,8 @@ func (o *Post) ShallowCopy(dst *Post) error {
 		dst.IsFollowing = NewPointer(*o.IsFollowing)
 	}
 	dst.RemoteId = o.RemoteId
+	dst.Qrid = o.Qrid
+	dst.Qpid = o.Qpid
 	return nil
 }
 

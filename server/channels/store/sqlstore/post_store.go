@@ -126,17 +126,23 @@ func postSliceCoalesceQuery() string {
 	cols := make([]string, len(colInfos))
 	for i, colInfo := range colInfos {
 		var defaultValue string
-		switch colInfo.Type {
-		case reflect.String:
-			defaultValue = "''"
-		case reflect.Int64:
-			defaultValue = "0"
-		case reflect.Bool:
-			defaultValue = "false"
-		case reflect.Map:
-			defaultValue = "'{}'"
-		case reflect.Slice:
-			defaultValue = "'[]'"
+		switch colInfo.Name {
+		case "RemoteId", "Qrid", "Qpid":
+			// For pointer string fields, use NULL as default to allow proper nil handling
+			defaultValue = "NULL"
+		default:
+			switch colInfo.Type {
+			case reflect.String:
+				defaultValue = "''"
+			case reflect.Int64:
+				defaultValue = "0"
+			case reflect.Bool:
+				defaultValue = "false"
+			case reflect.Map:
+				defaultValue = "'{}'"
+			case reflect.Slice:
+				defaultValue = "'[]'"
+			}
 		}
 		cols[i] = "COALESCE(Posts." + colInfo.Name + "," + defaultValue + ") AS " + colInfo.Name
 	}

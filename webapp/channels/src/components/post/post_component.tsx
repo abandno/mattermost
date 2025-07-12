@@ -35,6 +35,7 @@ import PostPreHeader from 'components/post_view/post_pre_header';
 import PostTime from 'components/post_view/post_time';
 import ReactionList from 'components/post_view/reaction_list';
 import ThreadFooter from 'components/threading/channel_threads/thread_footer';
+import QuotedPostDisplay from 'components/quoted_message/quoted_post_display';
 import type {Props as TimestampProps} from 'components/timestamp/timestamp';
 import ArchiveIcon from 'components/widgets/icons/archive_icon';
 import InfoSmallIcon from 'components/widgets/icons/info_small_icon';
@@ -660,6 +661,12 @@ function PostComponent(props: Props) {
                             id={isRHS ? undefined : `${post.id}_message`}
                         >
                             {post.failed && <FailedPostOptions post={post}/>}
+                            {/* 显示引用消息 */}
+                            <QuotedPostDisplay
+                                post={post}
+                                location={props.location}
+                                currentUserId={props.currentUserId}
+                            />
                             <AutoHeightSwitcher
                                 showSlot={slotBasedOnEditOrMessageView}
                                 shouldScrollIntoView={props.isPostBeingEdited}
