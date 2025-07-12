@@ -248,10 +248,10 @@ const AdvancedTextEditor = ({
         }
 
         // 塞入被引用消息id
-        console.log('==quotedPost', quotedPost)
+        // console.log('==quotedPost', quotedPost)
         draftToChange.qrid = quotedPost?.qrid || quotedPost?.id; // 被引用者没有qrid, 它自己就是根
         draftToChange.qpid = quotedPost?.id;
-        // console.log('==handleDraftChange draftToChange', draftToChange, quotedPostId)
+        // console.log('==handleDraftChange draftToChange', draftToChange, quotedPost)
         setDraft(draftToChange);
 
         const saveDraft = () => {

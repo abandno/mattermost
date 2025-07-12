@@ -351,7 +351,7 @@ func (a *App) CreatePost(c request.CTX, post *model.Post, channel *model.Channel
 	}
 
 	// Handle quote references if present
-	if post.Qpid != "" {
+	if post.Qpid != nil && *post.Qpid != "" {
 		if err := a.handleQuoteReferences(c, post); err != nil {
 			return nil, err
 		}
@@ -2829,9 +2829,9 @@ func (a *App) SendTestMessage(c request.CTX, userID string) (*model.Post, *model
 // handleQuoteReferences processes quote references for a post
 func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppError {
 	// Validate the quoted post exists and user has permission to read it
-	quotedPost, err := a.GetSinglePost(c, post.Qpid, false)
+	quotedPost, err := a.GetSinglePost(c, *post.Qpid, false)
 	if err != nil {
-		return model.NewAppError("handleQuoteReferences", "api.post.quote.invalid_post.app_error", nil, "quoted_post_id="+post.Qpid, http.StatusBadRequest).Wrap(err)
+		return model.NewAppError("handleQuoteReferences", "api.post.quote.invalid_post.app_error", nil, "quoted_post_id="+*post.Qpid, http.StatusBadRequest).Wrap(err)
 	}
 
 	// Check if user has permission to read the quoted post's channel
@@ -2845,8 +2845,8 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 	}
 
 	// quotedPost 没有 qrid , 说明它自己就是root
-	if quotedPost.Qrid == "" {
-		post.Qrid = quotedPost.Id
+	if quotedPost.Qrid == nil || *quotedPost.Qrid == "" {
+		post.Qrid = &quotedPost.Id
 	} else {
 		post.Qrid = quotedPost.Qrid
 	}
@@ -2858,14 +2858,14 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 	post.AddProp("quote", quoteInfo)
 
 	// Increment quote count for the quoted post
-	if err := a.incrementQuoteCount(c, post.Qpid); err != nil {
-		c.Logger().Warn("Failed to increment quote count for quoted post", mlog.String("quoted_post_id", post.Qpid), mlog.Err(err))
+	if err := a.incrementQuoteCount(c, *post.Qpid); err != nil {
+		c.Logger().Warn("Failed to increment quote count for quoted post", mlog.String("quoted_post_id", *post.Qpid), mlog.Err(err))
 	}
 
 	// Increment quote count for the quote root post (if different from quoted post)
-	if post.Qrid != post.Qpid {
-		if err := a.incrementQuoteCount(c, post.Qrid); err != nil {
-			c.Logger().Warn("Failed to increment quote count for quote root post", mlog.String("quote_root_id", post.Qrid), mlog.Err(err))
+	if *post.Qrid != *post.Qpid {
+		if err := a.incrementQuoteCount(c, *post.Qrid); err != nil {
+			c.Logger().Warn("Failed to increment quote count for quote root post", mlog.String("quote_root_id", *post.Qrid), mlog.Err(err))
 		}
 	}
 

@@ -126,3 +126,5 @@ config.override.mk
 docker-compose.override.yaml
 
 __debug_bin*
+
+cmd/mattermost/data

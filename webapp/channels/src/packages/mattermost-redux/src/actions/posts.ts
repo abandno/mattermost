@@ -244,6 +244,7 @@ export function createPost(
 
         (async function createPostWrapper() {
             try {
+                // console.log('==begin Client4.createPost', newPost)
                 const created = await Client4.createPost({...newPost, create_at: 0});
 
                 actions = [

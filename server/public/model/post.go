@@ -115,8 +115,8 @@ type Post struct {
 	RemoteId      *string         `json:"remote_id,omitempty"`
 
 	// Quote reference fields
-	Qrid string `json:"qrid"` // Quote root ID - the root post of the quoted thread
-	Qpid string `json:"qpid"` // Quote post ID - the specific post being quoted
+	Qrid *string `json:"qrid"` // Quote root ID - the root post of the quoted thread
+	Qpid *string `json:"qpid"` // Quote post ID - the specific post being quoted
 
 	// Transient data populated before sending a post to the client
 	ReplyCount   int64         `json:"reply_count"`

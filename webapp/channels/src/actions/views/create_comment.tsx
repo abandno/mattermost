@@ -59,8 +59,11 @@ export function submitPost(
             user_id: userId,
             create_at: time,
             metadata: {...draft.metadata},
-            props: {...draft.props},
+            props: { ...draft.props },
+            qrid: draft.qrid,
+            qpid: draft.qpid,
         } as unknown as Post;
+        // console.log('==submitPost post buid', post)
 
         const channel = getChannel(state, channelId);
         if (!channel) {
