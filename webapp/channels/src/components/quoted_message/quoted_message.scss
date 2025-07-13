@@ -1,14 +1,17 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
+@use "utils/variables";
 
 .quoted-message {
     display: flex;
+    align-items: center;
     // flex-direction: column;
     // margin-bottom: 8px;
     padding: 2px 4px;
-    background: rgba(var(--center-channel-color-rgb), 0.04);
-    border-left: 3px solid var(--link-color);
-    border-radius: 4px;
+    // background: rgba(var(--center-channel-color-rgb), 0.04);
+    background: #F8F8F8;
+    border-left: 2px solid rgba(var(--center-channel-color-rgb), 0.6);
+    // border-radius: 2px;
     font-size: 13px;
     line-height: 1.4;
     color: rgba(var(--center-channel-color-rgb), 0.6);
@@ -26,7 +29,7 @@
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        margin-bottom: 4px;
+        // margin-bottom: 4px;
     }
 
     &__user-info {

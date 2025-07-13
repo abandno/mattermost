@@ -1,7 +1,7 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { FormattedMessage } from 'react-intl';
 
 import type { Post } from '@mattermost/types/posts';
@@ -67,6 +67,25 @@ export default function QuotedMessage({
 }: Props) {
     // 如果提供了 quotedPost，直接使用；否则从 Redux store 获取
     const quotePost: Post | null = quotedPost || useSelector((state: GlobalState) => quotedPostSelector(state, location));
+
+    // 当 onRemove 非空时，监听 ESC 键事件
+    useEffect(() => {
+        if (!onRemove) {
+            return;
+        }
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onRemove();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [onRemove]);
 
     if (!quotePost) return null;
 
