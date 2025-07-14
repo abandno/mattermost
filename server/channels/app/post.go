@@ -2852,20 +2852,77 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 	}
 
 	// Store quote information in props for backward compatibility
-	quoteInfo := map[string]interface{}{
-		"quoted_user_id": quotedPost.UserId,
-	}
-	post.AddProp("quote", quoteInfo)
+	// quoteInfo := map[string]interface{}{
+	// 	"quoted_user_id": quotedPost.UserId,
+	// }
+	// post.AddProp("quote", quoteInfo)
 
-	// Increment quote count for the quoted post
-	if err := a.incrementQuoteCount(c, *post.Qpid); err != nil {
-		c.Logger().Warn("Failed to increment quote count for quoted post", mlog.String("quoted_post_id", *post.Qpid), mlog.Err(err))
+	// // Increment quote count for the quoted post
+	// if err := a.incrementQuoteCount(c, *post.Qpid); err != nil {
+	// 	c.Logger().Warn("Failed to increment quote count for quoted post", mlog.String("quoted_post_id", *post.Qpid), mlog.Err(err))
+	// }
+
+	// // Increment quote count for the quote root post (if different from quoted post)
+	// if *post.Qrid != *post.Qpid {
+	// 	if err := a.incrementQuoteCount(c, *post.Qrid); err != nil {
+	// 		c.Logger().Warn("Failed to increment quote count for quote root post", mlog.String("quote_root_id", *post.Qrid), mlog.Err(err))
+	// 	}
+	// }
+
+	// 处理回复关系
+	// 假设根消息为A
+	// B回复A: B, A 各一行引用关系(新增), A 为根
+	// C回复B: C 一行引用关系, B和A的引用关系必定已存在, B的drcount+1.
+
+	now := model.GetMillis()
+	currentReply := &model.PostReply{
+		PostId:   post.Id,
+		Pid:      *post.Qpid,
+		Rid:      *post.Qrid,
+		CreateAt: now,
+		UpdateAt: now,
+	}
+	// 新增 currentReply
+	if err := a.Srv().Store().PostReply().Save(currentReply); err != nil {
+		// 处理错误
 	}
 
-	// Increment quote count for the quote root post (if different from quoted post)
-	if *post.Qrid != *post.Qpid {
-		if err := a.incrementQuoteCount(c, *post.Qrid); err != nil {
-			c.Logger().Warn("Failed to increment quote count for quote root post", mlog.String("quote_root_id", *post.Qrid), mlog.Err(err))
+	if *post.Qrid == *post.Qpid {
+		// B回复A 情况
+		rootReply := &model.PostReply{
+			PostId:   *post.Qrid,
+			Pid:      *post.Qrid,
+			Rid:      *post.Qrid,
+			CreateAt: now,
+			UpdateAt: now,
+			DRcount:  1,
+		}
+		// 新增 rootReply
+		if err := a.Srv().Store().PostReply().Save(rootReply); err != nil {
+			// 处理错误
+		}
+		// ReplyThreads 新增
+		replyThread := model.ReplyThreads{
+			PostId:       *post.Qrid,
+			ChannelId:    post.ChannelId,
+			ReplyCount:   1,
+			LastReplyAt:  now,
+			Participants: model.StringArray{post.UserId},
+		}
+		if err := a.Srv().Store().ReplyThreads().Save(&replyThread); err != nil {
+			// 处理错误
+		}
+
+	} else {
+		// C回复B 情况
+		// 父postreply行drcount+1
+		if err := a.Srv().Store().PostReply().IncrDRcountByPostId(*post.Qpid); err != nil {
+			// 处理错误
+		}
+
+		// ReplyThreads 更新 replyCount
+		if err := a.Srv().Store().ReplyThreads().IncrReplyCountByPostId(*post.Qrid); err != nil {
+			// 处理错误
 		}
 	}
 

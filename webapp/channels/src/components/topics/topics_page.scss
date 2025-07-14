@@ -1,0 +1,100 @@
+.topics-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--center-channel-bg);
+    color: var(--center-channel-color);
+
+    &__header {
+        padding: 20px;
+        border-bottom: 1px solid var(--center-channel-color-16);
+        background: var(--center-channel-bg);
+
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--center-channel-color);
+        }
+
+        p {
+            margin: 0;
+            color: var(--center-channel-color-72);
+            font-size: 14px;
+        }
+    }
+
+    &__content {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    &__section {
+        margin-bottom: 30px;
+
+        h2 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--center-channel-color);
+        }
+    }
+
+    .topics-list {
+        .topic-item {
+            padding: 16px;
+            border: 1px solid var(--center-channel-color-16);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: var(--center-channel-bg);
+            transition: all 0.2s ease;
+
+            &:hover {
+                border-color: var(--center-channel-color-32);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            }
+
+            .topic-title {
+                font-size: 16px;
+                font-weight: 500;
+                color: var(--center-channel-color);
+                margin-bottom: 8px;
+                cursor: pointer;
+
+                &:hover {
+                    color: var(--link-color);
+                }
+            }
+
+            .topic-meta {
+                display: flex;
+                gap: 16px;
+                font-size: 12px;
+                color: var(--center-channel-color-72);
+
+                .topic-author {
+                    font-weight: 500;
+                }
+
+                .topic-replies {
+                    color: var(--center-channel-color-64);
+                }
+
+                .topic-time {
+                    color: var(--center-channel-color-56);
+                }
+            }
+        }
+
+        .no-topics {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--center-channel-color-72);
+            font-size: 14px;
+            background: var(--center-channel-bg);
+            border: 1px dashed var(--center-channel-color-16);
+            border-radius: 8px;
+        }
+    }
+} 

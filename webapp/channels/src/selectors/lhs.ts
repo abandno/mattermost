@@ -46,6 +46,11 @@ export const getVisibleStaticPages = createSelector(
             isVisible: draftsCount > 0,
         });
 
+        staticPages.push({
+            id: 'topics',
+            isVisible: true,
+        });
+
         return staticPages.filter((item) => item.isVisible);
     },
 );

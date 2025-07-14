@@ -98,6 +98,8 @@ type Store interface {
 	AccessControlPolicy() AccessControlPolicyStore
 	Attributes() AttributesStore
 	GetSchemaDefinition() (*model.SupportPacketDatabaseSchema, error)
+	PostReply() PostReplyStore
+	ReplyThreads() ReplyThreadsStore
 }
 
 type RetentionPolicyStore interface {
@@ -1225,4 +1227,16 @@ type ThreadMembershipImportData struct {
 	LastViewed int64
 	// UnreadMentions is the number of unread mentions to set the UnreadMentions field to.
 	UnreadMentions int64
+}
+
+// PostReplyStore 接口
+type PostReplyStore interface {
+	Save(reply *model.PostReply) error
+	IncrDRcountByPostId(postId string) error
+}
+
+// ReplyThreadsStore 接口
+type ReplyThreadsStore interface {
+	Save(thread *model.ReplyThreads) error
+	IncrReplyCountByPostId(postId string) error
 }

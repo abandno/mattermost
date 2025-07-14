@@ -828,6 +828,26 @@ func (_m *Store) PostPriority() store.PostPriorityStore {
 	return r0
 }
 
+// PostReply provides a mock function with no fields
+func (_m *Store) PostReply() store.PostReplyStore {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for PostReply")
+	}
+
+	var r0 store.PostReplyStore
+	if rf, ok := ret.Get(0).(func() store.PostReplyStore); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(store.PostReplyStore)
+		}
+	}
+
+	return r0
+}
+
 // Preference provides a mock function with no fields
 func (_m *Store) Preference() store.PreferenceStore {
 	ret := _m.Called()
@@ -1004,6 +1024,26 @@ func (_m *Store) ReplicaLagTime() error {
 		r0 = rf()
 	} else {
 		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// ReplyThreads provides a mock function with no fields
+func (_m *Store) ReplyThreads() store.ReplyThreadsStore {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReplyThreads")
+	}
+
+	var r0 store.ReplyThreadsStore
+	if rf, ok := ret.Get(0).(func() store.ReplyThreadsStore); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(store.ReplyThreadsStore)
+		}
 	}
 
 	return r0

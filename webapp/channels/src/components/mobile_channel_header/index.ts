@@ -43,6 +43,7 @@ const mapStateToProps = (state: GlobalState, ownProps: OwnProps) => ({
     isMuted: isCurrentChannelMuted(state),
     inGlobalThreads: Boolean(matchPath(ownProps.location.pathname, {path: '/:team/threads/:threadIdentifier?'})),
     inDrafts: Boolean(matchPath(ownProps.location.pathname, {path: '/:team/drafts'})),
+    inTopics: Boolean(matchPath(ownProps.location.pathname, {path: '/:team/topics'})),
 });
 
 const mapDispatchToProps = (dispatch: Dispatch) => ({

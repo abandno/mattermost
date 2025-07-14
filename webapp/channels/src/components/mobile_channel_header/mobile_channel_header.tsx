@@ -22,6 +22,7 @@ type Props = {
 
     inGlobalThreads?: boolean;
     inDrafts?: boolean;
+    inTopics?: boolean;
     isMobileView: boolean;
     isMuted?: boolean;
     isRHSOpen?: boolean;
@@ -58,7 +59,7 @@ export default class MobileChannelHeader extends React.PureComponent<Props> {
     };
 
     render() {
-        const {user, channel, isMuted, inGlobalThreads, inDrafts} = this.props;
+        const {user, channel, isMuted, inGlobalThreads, inDrafts, inTopics} = this.props;
 
         let heading;
         if (inGlobalThreads) {
@@ -73,6 +74,13 @@ export default class MobileChannelHeader extends React.PureComponent<Props> {
                 <FormattedMessage
                     id='drafts.heading'
                     defaultMessage='Drafts'
+                />
+            );
+        } else if (inTopics) {
+            heading = (
+                <FormattedMessage
+                    id='topics.heading'
+                    defaultMessage='Topics'
                 />
             );
         } else if (channel) {
