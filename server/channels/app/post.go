@@ -350,13 +350,6 @@ func (a *App) CreatePost(c request.CTX, post *model.Post, channel *model.Channel
 		post.CreateAt = model.GetMillis()
 	}
 
-	// Handle quote references if present
-	if post.Qpid != nil && *post.Qpid != "" {
-		if err := a.handleQuoteReferences(c, post); err != nil {
-			return nil, err
-		}
-	}
-
 	post = a.getEmbedsAndImages(c, post, true)
 	previewPost := post.GetPreviewPost()
 	if previewPost != nil {
@@ -374,6 +367,13 @@ func (a *App) CreatePost(c request.CTX, post *model.Post, channel *model.Channel
 			return nil, model.NewAppError("CreatePost", "app.post.save.existing.app_error", nil, "", http.StatusBadRequest).Wrap(nErr)
 		default:
 			return nil, model.NewAppError("CreatePost", "app.post.save.app_error", nil, "", http.StatusInternalServerError).Wrap(nErr)
+		}
+	}
+
+	// Handle quote references if present
+	if post.Qpid != nil && *post.Qpid != "" {
+		if err := a.handleQuoteReferences(c, post); err != nil {
+			return nil, err
 		}
 	}
 
