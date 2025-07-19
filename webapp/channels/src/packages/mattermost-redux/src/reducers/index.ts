@@ -5,10 +5,12 @@ import entities from './entities';
 import errors from './errors';
 import requests from './requests';
 import websocket from './websocket';
+import topic from './combine/topic';
 
 export default {
     entities,
     errors,
     requests,
     websocket,
+    topic,
 };

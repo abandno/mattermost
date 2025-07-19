@@ -31,6 +31,7 @@ import SearchTypes from './search';
 import SharedChannelTypes from './shared_channels';
 import TeamTypes from './teams';
 import ThreadTypes from './threads';
+import TopicTypes from './topic';
 import UserTypes from './users';
 
 export {
@@ -57,6 +58,7 @@ export {
     CloudTypes,
     AppsTypes,
     ThreadTypes,
+    TopicTypes,
     HostedCustomerTypes,
     DraftTypes,
     PlaybookType,

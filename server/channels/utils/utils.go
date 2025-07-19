@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"html/template"
 	"io"
 	"math"
 	"net"
@@ -260,4 +261,19 @@ func RoundOffToZeroesResolution(n float64, minResolution int) int64 {
 	tens := int64(math.Pow10(resolution))
 	significantDigits := int64(n) / tens
 	return significantDigits * tens
+}
+
+// StrFormat format string template with params
+func StrFormat(name string, tmpl string, params any) (string, error) {
+	tmplobj, err := template.New(name).Parse(tmpl)
+	if err != nil {
+		return "", err
+	}
+	var sb strings.Builder
+	err = tmplobj.Execute(&sb, params)
+	if err != nil {
+		return "", err
+	}
+
+	return sb.String(), nil
 }

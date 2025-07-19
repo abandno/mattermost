@@ -101,4 +101,7 @@ export type GlobalState = {
         connectionId: string;
         serverHostname: string;
     };
+    topic: {
+        hotTopics: Array<any>;
+    }
 };

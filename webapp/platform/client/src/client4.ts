@@ -510,6 +510,10 @@ export default class Client4 {
         return `${this.getUserThreadsRoute(userId, teamId)}/${threadId}`;
     }
 
+    getUserTopicsRoute(userId: string, teamId: string): string {
+        return `${this.getUserRoute(userId)}/teams/${teamId}/topics`;
+    }
+
     getSystemRoute(): string {
         return `${this.getBaseRoute()}/system`;
     }
@@ -4566,6 +4570,29 @@ export default class Client4 {
         return this.doFetch<AccessControlAttributes>(
             `${this.getChannelRoute(channelId)}/access_control/attributes`,
             {method: 'get'},
+        );
+    };
+
+    getTopics = (
+        userId: UserProfile['id'] = 'me',
+        teamId: Team['id'],
+        {
+            before = undefined,
+            after = undefined,
+            perPage = PER_PAGE_DEFAULT,
+            direction = 'first',
+            type = 'hot',
+        }: {
+            before?: number;
+            after?: number;
+            perPage?: number;
+            direction?: string;
+            type?: string;
+        },
+    ) => {
+        return this.doFetch<any>(
+            `${this.getUserTopicsRoute(userId, teamId)}${buildQueryString({ before, after, per_page: perPage, direction, type })}`,
+            { method: 'get' },
         );
     };
 }

@@ -100,6 +100,7 @@ type Store interface {
 	GetSchemaDefinition() (*model.SupportPacketDatabaseSchema, error)
 	PostReply() PostReplyStore
 	ReplyThreads() ReplyThreadsStore
+	Topic() TopicStore
 }
 
 type RetentionPolicyStore interface {
@@ -1239,4 +1240,8 @@ type PostReplyStore interface {
 type ReplyThreadsStore interface {
 	Save(thread *model.ReplyThreads) error
 	IncrReplyCountByPostId(postId string) error
+}
+
+type TopicStore interface {
+	GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.TopicItem, error)
 }

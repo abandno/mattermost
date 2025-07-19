@@ -848,6 +848,29 @@ func (_m *Store) PostReply() store.PostReplyStore {
 	return r0
 }
 
+func (_m *Store) Topic() store.TopicStore {
+	return getStore[store.TopicStore](_m, "Topic")
+}
+
+func getStore[T any](mockStore *Store, logtag string) T {
+	ret := mockStore.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for " + logtag)
+	}
+
+	var r0 T
+	if rf, ok := ret.Get(0).(func() T); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(T)
+		}
+	}
+
+	return r0
+}
+
 // Preference provides a mock function with no fields
 func (_m *Store) Preference() store.PreferenceStore {
 	ret := _m.Called()

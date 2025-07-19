@@ -121,6 +121,7 @@ type SqlStoreStores struct {
 	Attributes                 store.AttributesStore
 	postReply                  store.PostReplyStore
 	replyThreads               store.ReplyThreadsStore
+	topic                      store.TopicStore
 }
 
 type SqlStore struct {
@@ -278,6 +279,7 @@ func New(settings model.SqlSettings, logger mlog.LoggerIFace, metrics einterface
 	store.stores.Attributes = newSqlAttributesStore(store, metrics)
 	store.stores.postReply = newSqlPostReplyStore(store)
 	store.stores.replyThreads = newSqlReplyThreadsStore(store)
+	store.stores.topic = newSqlTopicStore(store)
 
 	store.stores.preference.(*SqlPreferenceStore).deleteUnusedFeatures()
 
@@ -1102,6 +1104,10 @@ func (ss *SqlStore) PostReply() store.PostReplyStore {
 
 func (ss *SqlStore) ReplyThreads() store.ReplyThreadsStore {
 	return ss.stores.replyThreads
+}
+
+func (ss *SqlStore) Topic() store.TopicStore {
+	return ss.stores.topic
 }
 
 func (ss *SqlStore) DropAllTables() {

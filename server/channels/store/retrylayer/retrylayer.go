@@ -16796,6 +16796,42 @@ func (s *RetryLayerWebhookStore) UpdateOutgoing(hook *model.OutgoingWebhook) (*m
 
 }
 
+func (s *RetryLayerWebhookStore) DemoWithRetry(hook *model.OutgoingWebhook) (*model.OutgoingWebhook, error) {
+
+	// result, err := WithRetry(func() (interface{}, error) {
+	//     return s.WebhookStore.UpdateOutgoing(hook)
+	// }, 3)
+	// result, err := WithRetry(func (hook *model.OutgoingWebhook)  {
+	// 	return s.WebhookStore.UpdateOutgoing(hook)
+	// })
+	// if result == nil {
+	//     return nil, err
+	// }
+	// return result, err
+	return nil, nil
+}
+
+type RetryableFunc[T any] func(args ...any) (T, error)
+
+func WithRetry[T any](fn RetryableFunc[T], args ...any) (T, error) {
+	tries := 0
+	maxRetries := 3
+	for {
+		result, err := fn(args)
+		if err == nil {
+			return result, nil
+		}
+		if !isRepeatableError(err) {
+			return result, err
+		}
+		tries++
+		if tries >= maxRetries {
+			return result, errors.Wrap(err, "giving up after max consecutive repeatable transaction failures")
+		}
+		timepkg.Sleep(100 * timepkg.Millisecond)
+	}
+}
+
 func (s *RetryLayer) Close() {
 	s.Store.Close()
 }

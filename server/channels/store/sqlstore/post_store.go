@@ -783,7 +783,8 @@ func (s *SqlPostStore) Get(ctx context.Context, id string, opts model.GetPostsOp
 						sq.Eq{"DeleteAt": 0},
 					}).Suffix(")"),
 				).
-				From("Posts p, replycount").
+				From("Posts p").
+				CrossJoin("replycount").
 				LeftJoin("PostReply ON PostReply.PostId = p.Id").
 				Where(sq.And{
 					sq.Or{
@@ -875,6 +876,12 @@ func (s *SqlPostStore) Get(ctx context.Context, id string, opts model.GetPostsOp
 		}
 
 		sql, args, err := query.ToSql()
+		// Debug log for SQL query
+		mlog.Debug("Get Post SQL query",
+			mlog.String("sql", sql),
+			mlog.Any("args", args),
+			mlog.String("function", "Get"),
+			mlog.String("post_id", id))
 		if err != nil {
 			return nil, errors.Wrap(err, "Get_Tosql")
 		}
