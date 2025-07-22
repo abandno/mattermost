@@ -19,3 +19,13 @@ export type SystemSetting = {
     name: string;
     value: string;
 };
+
+export type AlphaNum = string | number;
+
+export type AlphaNumN = string | number | null | undefined;
+
+export type AlphaNumNArray = AlphaNumN[];
+
+export type AlphaNumNObject = {
+    [key: string]: AlphaNumN;
+};

@@ -7,6 +7,7 @@ import (
 	"github.com/mattermost/mattermost/server/public/shared/mlog"
 	"github.com/mattermost/mattermost/server/v8/channels/store"
 	"github.com/mattermost/mattermost/server/v8/channels/utils"
+	sq "github.com/mattermost/squirrel"
 	"github.com/pkg/errors"
 )
 
@@ -112,10 +113,10 @@ func (s *SqlTopicStore) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.Topic
 	replyThreadItemMap := map[string]*model.TopicItem{}
 	for _, item := range threadsRows {
 		switch item.ThreadType {
-		case "thread":
+		case model.ThreadEnum:
 			threadRootIds = append(threadRootIds, item.PostId)
 			threadItemMap[item.PostId] = item
-		case "replythread":
+		case model.ReplyThreadEnum:
 			replyThreadRootIds = append(replyThreadRootIds, item.PostId)
 			replyThreadItemMap[item.PostId] = item
 		}
@@ -123,7 +124,7 @@ func (s *SqlTopicStore) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.Topic
 
 	// 讨论型
 	if len(threadRootIds) > 0 {
-		latestReplyMap := getLatestReplies(s, threadRootIds, "thread")
+		latestReplyMap := getLatestReplies(s, threadRootIds, model.ThreadEnum)
 		for rootid, item := range threadItemMap {
 			if p, ok := latestReplyMap[rootid]; ok {
 				item.AttachPost = p
@@ -132,7 +133,7 @@ func (s *SqlTopicStore) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.Topic
 	}
 	// 引用型
 	if len(replyThreadRootIds) > 0 {
-		latestReplyMap := getLatestReplies(s, replyThreadRootIds, "replythread")
+		latestReplyMap := getLatestReplies(s, replyThreadRootIds, model.ReplyThreadEnum)
 		for rid, item := range replyThreadItemMap {
 			if p, ok := latestReplyMap[rid]; ok {
 				item.AttachPost = p
@@ -143,167 +144,6 @@ func (s *SqlTopicStore) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.Topic
 	return threadsRows, err
 }
 
-// func (s *SqlTopicStore) GetTopics4Hot__DEL(opts *model.TopicPageOpts) ([]*model.TopicItem, error) {
-// 	if opts == nil || opts.Limit <= 0 {
-// 		opts = &model.TopicPageOpts{Limit: 10}
-// 	}
-// /* ey */
-// 	// 查询 thread
-// 	threadQuery := `
-// SELECT p.*, t.replycount, t.lastreplyat, t.participants
-// FROM posts p
-// JOIN threads t ON p.id = t.postid
-// WHERE p.deleteat = 0 AND t.replycount > 0
-// ORDER BY t.replycount DESC
-// LIMIT ?`
-
-// 	// 查询 replythread
-// 	replyThreadQuery := `
-// SELECT p.*, t.replycount, t.lastreplyat, t.participants
-// FROM posts p
-// JOIN replythreads t ON p.id = t.postid
-// WHERE p.deleteat = 0 AND t.replycount > 0
-// ORDER BY t.replycount DESC
-// LIMIT ?`
-
-// 	topicItems := []*model.TopicItem{}
-
-// 	type topicRow struct {
-// 		model.Post
-// 		ReplyCount   int64             `db:"replycount"`
-// 		LastReplyAt  int64             `db:"lastreplyat"`
-// 		Participants model.StringArray `db:"participants"`
-// 	}
-
-// 	// 查询 thread
-// 	var threadRows []model.Thread
-// 	err := s.GetReplica().Select(&threadRows, threadQuery, opts.Limit)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	for _, row := range threadRows {
-// 		topicItems = append(topicItems, &model.TopicItem{
-// 			ThreadType:   "thread",
-// 			PostId:       row.PostId,
-// 			ChannelId:    row.ChannelId,
-// 			ReplyCount:   row.ReplyCount,
-// 			LastReplyAt:  row.LastReplyAt,
-// 			Participants: row.Participants,
-// 			// TitlePost:    &row.Post,
-// 		})
-// 	}
-
-// 	// 查询 replythread
-// 	var replyThreadRows []model.Thread
-// 	err = s.GetReplica().Select(&replyThreadRows, replyThreadQuery, opts.Limit)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	for _, row := range replyThreadRows {
-// 		topicItems = append(topicItems, &model.TopicItem{
-// 			ThreadType:   "replythread",
-// 			PostId:       row.PostId,
-// 			ChannelId:    row.ChannelId,
-// 			ReplyCount:   row.ReplyCount,
-// 			LastReplyAt:  row.LastReplyAt,
-// 			Participants: row.Participants,
-// 			// TitlePost:    &row.Post,
-// 		})
-// 	}
-
-// 	// 合并后按 replycount 排序，取前 N 个
-// 	if len(topicItems) > opts.Limit {
-// 		sort.Slice(topicItems, func(i, j int) bool {
-// 			return topicItems[i].ReplyCount > topicItems[j].ReplyCount
-// 		})
-// 		topicItems = topicItems[:opts.Limit]
-// 	}
-
-// 	// 关联出posts表的post, 放到 TopicItem.TitlePost
-// 	postIdMap := map[string]*model.TopicItem{}
-// 	postIds := []string{}
-// 	for _, item := range topicItems {
-// 		postIdMap[item.PostId] = item
-// 		postIds = append(postIds, item.PostId)
-// 	}
-// 	// posts, _ := s.SqlStore.Post().GetPostsByIds(postIds)
-// 	// if err == nil {
-// 	// 	// for _, post := range posts {
-// 	// 	// 	if item, ok := postIdMap[post.Id]; ok {
-// 	// 	// 		// item.TitlePost = post // 移除无此字段的赋值
-// 	// 	// 	}
-// 	// 	// }
-// 	// }
-
-// 	// threads里的, posts表按rootid分组各自取到最新回复post; replythreads里的, 先在postreply按qrid分组, 取到最新回复postid, 然后关联posts取message等
-// 	// 放到 AttachPost
-// 	// 1. threads: rootid=PostId, posts表查最新回复
-// 	threadRootIds := []string{}
-// 	replyThreadRootIds := []string{}
-// 	threadItemMap := map[string]*model.TopicItem{}
-// 	replyThreadItemMap := map[string]*model.TopicItem{}
-// 	for _, item := range topicItems {
-// 		if item.ThreadType == "thread" {
-// 			threadRootIds = append(threadRootIds, item.PostId)
-// 			threadItemMap[item.PostId] = item
-// 		} else if item.ThreadType == "replythread" {
-// 			replyThreadRootIds = append(replyThreadRootIds, item.PostId)
-// 			replyThreadItemMap[item.PostId] = item
-// 		}
-// 	}
-// 	// threads: 查每个 rootid 最新回复 post
-// 	if len(threadRootIds) > 0 {
-// 		query := `SELECT * FROM posts WHERE rootid = ANY(?) AND deleteat = 0 AND rootid != '' AND id != rootid ORDER BY createat DESC`
-// 		var replyPosts []model.Post
-// 		s.GetReplica().Select(&replyPosts, query, threadRootIds)
-// 		// 只保留每个 rootid 最新一条
-// 		latestReplyMap := map[string]*model.Post{}
-// 		for _, post := range replyPosts {
-// 			if _, ok := latestReplyMap[post.RootId]; !ok {
-// 				p := post
-// 				latestReplyMap[post.RootId] = &p
-// 			}
-// 		}
-// 		for rootid, item := range threadItemMap {
-// 			if p, ok := latestReplyMap[rootid]; ok {
-// 				item.AttachPost = p
-// 			}
-// 		}
-// 	}
-// 	// replythreads: 查每个 qrid 最新回复 postid
-// 	if len(replyThreadRootIds) > 0 {
-// 		// 先查 postreply 表，找 rid=PostId 的最新 postid
-// 		query := `SELECT rid, postid, MAX(createat) as max_createat FROM postreply WHERE rid = ANY(?) AND deleteat = 0 GROUP BY rid`
-// 		type replyInfo struct {
-// 			Rid    string `db:"rid"`
-// 			PostId string `db:"postid"`
-// 			MaxAt  int64  `db:"max_createat"`
-// 		}
-// 		var replyInfos []replyInfo
-// 		s.GetReplica().Select(&replyInfos, query, replyThreadRootIds)
-// 		postIdToRid := map[string]string{}
-// 		latestReplyPostIds := []string{}
-// 		for _, info := range replyInfos {
-// 			postIdToRid[info.PostId] = info.Rid
-// 			latestReplyPostIds = append(latestReplyPostIds, info.PostId)
-// 		}
-// 		if len(latestReplyPostIds) > 0 {
-// 			posts, err := s.SqlStore.Post().GetPostsByIds(latestReplyPostIds)
-// 			if err == nil {
-// 				for _, post := range posts {
-// 					if rid, ok := postIdToRid[post.Id]; ok {
-// 						if item, ok := replyThreadItemMap[rid]; ok {
-// 							item.AttachPost = post
-// 						}
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	return topicItems, nil
-// }
-
 func (s *SqlTopicStore) GetTopics4New(opts *model.TopicPageOpts) error {
 	//
 
@@ -311,20 +151,20 @@ func (s *SqlTopicStore) GetTopics4New(opts *model.TopicPageOpts) error {
 }
 
 // getLatestReplies 查询每个 rootid/rid 下最新回复 post，返回 map[rootid/rid]*model.Post
-func getLatestReplies(s *SqlTopicStore, ids []string, mode string) map[string]*model.Post {
+func getLatestReplies(s *SqlTopicStore, ids []string, mode model.ThreadType) map[string]*model.Post {
 	result := map[string]*model.Post{}
 	if len(ids) == 0 {
 		return result
 	}
 	switch mode {
-	case "thread":
+	case model.ThreadEnum:
 		query := `SELECT DISTINCT ON (rootid) * FROM posts WHERE rootid = ANY(?) AND deleteat = 0 ORDER BY rootid, updateat DESC`
 		var replyPosts []model.Post
 		s.GetReplica().Select(&replyPosts, query, ids)
 		for _, p := range replyPosts {
 			result[p.RootId] = &p
 		}
-	case "replythread":
+	case model.ReplyThreadEnum:
 		type replyPost struct {
 			model.Post
 			Rid string
@@ -346,4 +186,171 @@ func getLatestReplies(s *SqlTopicStore, ids []string, mode string) map[string]*m
 		}
 	}
 	return result
+}
+
+// thread + topic + lvl1（评论列表，讨论串里找）
+func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*model.TopicReplyList, error) {
+	query := s.getQueryBuilder().
+		Select("Posts.*").
+		From("Posts").
+		Where(sq.Eq{"RootId": req.PostId}).
+		Where(sq.Eq{"DeleteAt": 0}).
+		Limit(req.Limit)
+
+	switch req.Direction {
+	case "next":
+		if req.After > 0 {
+			query.Where(sq.Lt{"updateat": req.After})
+		}
+		query.OrderBy("updateat DESC")
+	default:
+		// 暂仅支持向后加载更多
+		return nil, errors.New("invalid direction")
+	}
+
+	sql, args, err := query.ToSql()
+	mlog.Debug("SqlTopicStore.GetReplies4ThreadTopicLvl1", mlog.String("sql", sql), mlog.Any("args", args))
+	if err != nil {
+		return nil, errors.Wrap(err, "Get_Tosql")
+	}
+
+	replies := []*model.PostReplyExt{}
+	err = s.GetReplica().Select(&replies, sql, args...)
+
+	result := &model.TopicReplyList{
+		Replies: replies,
+		HasMore: len(replies) >= int(req.Limit), // 当前页满了, 可能还有
+	}
+
+	return result, err
+}
+
+// thread + topic + lvl2（话题直接回复，引用串中找，所有后代）
+func (s *SqlTopicStore) GetReplies4ThreadTopicLvl2(req *model.PostRepliesReq) (*model.TopicReplyList, error) {
+	return s.GetReplies4ReplyThreadComment(req)
+}
+
+// replythread + topic（引用串，直接引用）
+func (s *SqlTopicStore) GetReplies4ReplyThreadTopic(req *model.PostRepliesReq) (*model.TopicReplyList, error) {
+	// 1. 子查询：查 postreply
+	subQuery := sq.
+		Select("*").
+		From("postreply").
+		Where(sq.Lt{"updateat": req.After}).
+		OrderBy("updateat DESC").
+		Limit(req.Limit)
+
+	// 2. 主查询：join posts
+	query := sq.
+		Select("p.*, pr.pid, pr.rid").
+		FromSelect(subQuery, "pr").
+		Join("posts p ON p.id = pr.postid").
+		OrderBy("p.updateat DESC")
+
+	sqlStr, args, err := query.ToSql()
+	mlog.Debug("SqlTopicStore.GetReplies4ReplyThreadTopic", mlog.String("sql", sqlStr), mlog.Any("args", args))
+	if err != nil {
+		return nil, err
+	}
+
+	posts := []*model.PostReplyExt{}
+	err = s.GetReplica().Select(&posts, sqlStr, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.TopicReplyList{Replies: posts, HasMore: len(posts) >= int(req.Limit)}, nil
+}
+
+// replythread + comment（引用串，所有后代）
+func (s *SqlTopicStore) GetReplies4ReplyThreadComment(req *model.PostRepliesReq) (*model.TopicReplyList, error) {
+	replies, err := s.queryDescendantReply(req)
+	if err != nil {
+		return &model.TopicReplyList{}, err
+	}
+	if len(replies) == 0 {
+		return &model.TopicReplyList{Replies: []*model.PostReplyExt{}}, nil
+	}
+
+	// 递归查回复链，实际post页面上懒加载，当前进返回回复关系链，用于翻页
+	// 前 10 条，现在就关联出posts
+	err = s.fillPosts4FirstPage(req, replies)
+	if err != nil {
+		return &model.TopicReplyList{Replies: []*model.PostReplyExt{}}, err
+	}
+
+	var hasMore = false
+	if len(replies) >= int(req.Limit) {
+		hasMore = true
+	}
+	return &model.TopicReplyList{Replies: replies, HasMore: hasMore}, nil
+}
+
+func (s *SqlTopicStore) fillPosts4FirstPage(req *model.PostRepliesReq, replies []*model.PostReplyExt) error {
+	postids := make([]string, 0, int(req.Limit))
+	for _, r := range replies {
+		postids = append(postids, r.PostId)
+		if len(postids) >= int(req.Limit) {
+			break
+		}
+	}
+
+	// 批量查 posts
+	posts := []*model.Post{}
+	query, args, err := sq.Select("*").From("posts").Where(sq.Eq{"id": postids}).ToSql()
+	if err != nil {
+		return errors.Wrap(err, "GetPosts_Tosql")
+	}
+	err = s.GetReplica().Select(&posts, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "GetPosts_Select")
+	}
+	postMap := make(map[string]*model.Post, len(posts))
+	for _, p := range posts {
+		postMap[p.Id] = p
+	}
+
+	// 5. 组装返回
+	for _, r := range replies {
+		if post, ok := postMap[r.PostId]; ok {
+			r.Message = post.Message
+			r.UserId = post.UserId
+			r.ChannelId = post.ChannelId
+		}
+	}
+	return nil
+}
+
+// 递归查询所有后代回复链
+func (s *SqlTopicStore) queryDescendantReply(req *model.PostRepliesReq) ([]*model.PostReplyExt, error) {
+	const maxlimit = 1000
+	const maxrec = 6
+	sql, args, err := sq.
+		Select("*").
+		Prefix(`
+        WITH RECURSIVE descendants AS (
+            SELECT *, 1 AS level 
+            FROM postreply 
+            WHERE pid = $1 AND deleteat = 0 AND postid <> pid
+            UNION ALL
+            SELECT pr.*, d.level + 1
+            FROM postreply pr
+            INNER JOIN descendants d ON pr.pid = d.postid
+            WHERE pr.deleteat = 0 AND d.level <= $2
+        )
+    `, req.PostId, maxrec).
+		From("descendants").
+		OrderBy("updateat DESC").
+		Limit(uint64(maxlimit)).
+		ToSql()
+	mlog.Debug("SqlTopicStore.GetReplies4ReplyThreadComment", mlog.String("sql", sql), mlog.Any("args", args))
+	if err != nil {
+		return nil, errors.Wrap(err, "Get_Tosql")
+	}
+	replies := []*model.PostReplyExt{}
+	err = s.GetReplica().Select(&replies, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	return replies, nil
 }

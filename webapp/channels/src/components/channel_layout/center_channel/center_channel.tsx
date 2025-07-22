@@ -36,6 +36,13 @@ const TopicsPage = makeAsyncComponent('TopicsPage', lazy(() => import('component
         </div>
     ),
 );
+const TopicPageDetail = makeAsyncComponent('TopicPageDetail', lazy(() => import('components/topics/topic_detail')),
+    (
+        <div className='app__content'>
+            <LoadingScreen />
+        </div>
+    ),
+);
 const PermalinkView = makeAsyncComponent('PermalinkView', lazy(() => import('components/permalink_view')));
 const PlaybookRunner = makeAsyncComponent('PlaybookRunner', lazy(() => import('components/channel_layout/playbook_runner')));
 
@@ -121,6 +128,10 @@ export default class CenterChannel extends React.PureComponent<Props, State> {
                         <Route
                             path={`/:team(${TEAM_NAME_PATH_PATTERN})/topics`}
                             component={TopicsPage}
+                        />
+                        <Route
+                            path={`/:team(${TEAM_NAME_PATH_PATTERN})/topics/:topicId`}
+                            component={TopicPageDetail}
                         />
 
                         <Redirect to={lastChannelPath}/>

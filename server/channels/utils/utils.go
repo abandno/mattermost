@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -276,4 +277,13 @@ func StrFormat(name string, tmpl string, params any) (string, error) {
 	}
 
 	return sb.String(), nil
+}
+
+// ToInt 字符串转整数，如果出错，返回指定的缺省值
+func ToInt(str string, def int) int {
+	i, err := strconv.Atoi(str)
+	if err != nil {
+		return def
+	}
+	return i
 }

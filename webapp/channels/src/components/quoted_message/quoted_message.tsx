@@ -9,13 +9,8 @@ import type { Post } from '@mattermost/types/posts';
 import { makeGetDisplayName } from 'mattermost-redux/selectors/entities/users';
 import { getChannel } from 'mattermost-redux/selectors/entities/channels';
 
-import PostMarkdown from 'components/post_markdown';
-import Avatar from 'components/widgets/users/avatar';
-import Timestamp from 'components/timestamp';
-
 import { Locations } from 'utils/constants';
-import * as Utils from 'utils/utils';
-import { stripMarkdown } from 'utils/markdown';
+import {useMd2PlainText} from 'hooks/useMd2PlainText';
 
 import './quoted_message.scss';
 import { GlobalState } from 'types/store';
@@ -26,24 +21,9 @@ import { quotedPostSelector } from 'store/simple/quote';
 // 引用消息内容的最大长度
 const QUOTED_MESSAGE_MAX_LENGTH = 200;
 
-const QuotedMessageContent = ({ message }: { message: string }) => {
-    // markdown 格式内容转普通文本, 提出Markdown标记
-    // 限制长度, 超出长度, 截断并追加 "..." 
-    const plainText = useMemo(() => {
-        if (!message) {
-            return '';
-        }
-
-        // 使用 stripMarkdown 去除 markdown 标记
-        const strippedText = stripMarkdown(message);
-
-        // 限制长度，超出时截断并追加 "..."
-        if (strippedText.length > QUOTED_MESSAGE_MAX_LENGTH) {
-            return strippedText.substring(0, QUOTED_MESSAGE_MAX_LENGTH) + '...';
-        }
-
-        return strippedText;
-    }, [message]);
+const QuotedMessageContent = ({message}: {message: string}) => {
+    // Use the new hook for markdown to plain text conversion
+    const plainText = useMd2PlainText(message, {maxLength: QUOTED_MESSAGE_MAX_LENGTH});
 
     return (
         <div className='quoted-message__content-text'>
@@ -93,7 +73,6 @@ export default function QuotedMessage({
     const getDisplayName = useMemo(makeGetDisplayName, []);
     const isOwnPost = quotePost.user_id === currentUserId;
     const displayName = useSelector((state: GlobalState) => (getDisplayName(state, quotePost.user_id)));
-
 
     const handleRemove = (e: React.MouseEvent) => {
         e.preventDefault();

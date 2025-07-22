@@ -150,6 +150,7 @@ import type {DeepPartial, PartialExcept, RelationOneToOne} from '@mattermost/typ
 import {cleanUrlForLogging} from './errors';
 import {buildQueryString} from './helpers';
 import type {TelemetryHandler} from './telemetry';
+import type { TopicPageRequest } from '@mattermost/types/topic';
 
 export enum LdapDiagnosticTestType {
     FILTERS = 'filters',
@@ -4581,17 +4582,46 @@ export default class Client4 {
             after = undefined,
             perPage = PER_PAGE_DEFAULT,
             direction = 'first',
-            type = 'hot',
-        }: {
-            before?: number;
-            after?: number;
-            perPage?: number;
-            direction?: string;
-            type?: string;
-        },
+            orderMode = 'hot',
+        }: TopicPageRequest
     ) => {
         return this.doFetch<any>(
-            `${this.getUserTopicsRoute(userId, teamId)}${buildQueryString({ before, after, per_page: perPage, direction, type })}`,
+            `${this.getUserTopicsRoute(userId, teamId)}${buildQueryString({ before, after, per_page: perPage, direction, order_mode: orderMode})}`,
+            { method: 'get' },
+        );
+    };
+
+    getTopicReplies = (
+        userId: UserProfile['id'] = 'me',
+        teamId: Team['id'],
+        postId: string,
+        pid: string,
+        rid: string,
+        threadType: string,
+        location: string,
+        replvl: number,
+        {
+            before,
+            after,
+            perPage = PER_PAGE_DEFAULT,
+            direction = 'first',
+            orderMode = 'latest',
+        }: TopicPageRequest
+    ) => {
+        const qs = buildQueryString({ 
+            before, 
+            after, 
+            per_page: perPage, 
+            direction, 
+            order_mode: orderMode,
+            pid,
+            rid,
+            thread_type: threadType,
+            location,
+            replvl,
+        });
+        return this.doFetch<any>(
+            `${this.getUserTopicsRoute(userId, teamId)}/replies/${postId}${qs}`,
             { method: 'get' },
         );
     };

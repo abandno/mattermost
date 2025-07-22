@@ -1,22 +1,22 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {getName} from 'country-list';
+import { getName } from 'country-list';
 import crypto from 'crypto';
 import cssVars from 'css-vars-ponyfill';
-import type {Locale} from 'date-fns';
+import type { Locale } from 'date-fns';
 import isNil from 'lodash/isNil';
 import moment from 'moment';
 import React from 'react';
-import type {LinkHTMLAttributes} from 'react';
+import type { LinkHTMLAttributes } from 'react';
 
-import type {Channel} from '@mattermost/types/channels';
-import type {Address} from '@mattermost/types/cloud';
-import type {FileInfo} from '@mattermost/types/files';
-import type {Group} from '@mattermost/types/groups';
-import type {GlobalState} from '@mattermost/types/store';
-import type {Team} from '@mattermost/types/teams';
-import type {UserProfile} from '@mattermost/types/users';
+import type { Channel } from '@mattermost/types/channels';
+import type { Address } from '@mattermost/types/cloud';
+import type { FileInfo } from '@mattermost/types/files';
+import type { Group } from '@mattermost/types/groups';
+import type { GlobalState } from '@mattermost/types/store';
+import type { Team } from '@mattermost/types/teams';
+import type { UserProfile } from '@mattermost/types/users';
 
 import {
     getChannel as getChannelAction,
@@ -24,43 +24,43 @@ import {
     getChannelMember,
     joinChannel,
 } from 'mattermost-redux/actions/channels';
-import {getPost as getPostAction} from 'mattermost-redux/actions/posts';
-import {getTeamByName as getTeamByNameAction} from 'mattermost-redux/actions/teams';
-import {Client4} from 'mattermost-redux/client';
-import {Preferences, General} from 'mattermost-redux/constants';
-import {createSelector} from 'mattermost-redux/selectors/create_selector';
+import { getPost as getPostAction } from 'mattermost-redux/actions/posts';
+import { getTeamByName as getTeamByNameAction } from 'mattermost-redux/actions/teams';
+import { Client4 } from 'mattermost-redux/client';
+import { Preferences, General } from 'mattermost-redux/constants';
+import { createSelector } from 'mattermost-redux/selectors/create_selector';
 import {
     getChannel,
     getChannelsNameMapInTeam,
     getMyChannelMemberships,
 } from 'mattermost-redux/selectors/entities/channels';
-import {getPost} from 'mattermost-redux/selectors/entities/posts';
-import {getTeammateNameDisplaySetting, isCollapsedThreadsEnabled} from 'mattermost-redux/selectors/entities/preferences';
-import type {Theme} from 'mattermost-redux/selectors/entities/preferences';
+import { getPost } from 'mattermost-redux/selectors/entities/posts';
+import { getTeammateNameDisplaySetting, isCollapsedThreadsEnabled } from 'mattermost-redux/selectors/entities/preferences';
+import type { Theme } from 'mattermost-redux/selectors/entities/preferences';
 import {
     getTeamByName,
     getTeamMemberships,
     isTeamSameWithCurrentTeam,
 } from 'mattermost-redux/selectors/entities/teams';
-import {getCurrentUser, getCurrentUserId, isFirstAdmin} from 'mattermost-redux/selectors/entities/users';
-import {blendColors, changeOpacity} from 'mattermost-redux/utils/theme_utils';
-import {displayUsername, isSystemAdmin} from 'mattermost-redux/utils/user_utils';
+import { getCurrentUser, getCurrentUserId, isFirstAdmin } from 'mattermost-redux/selectors/entities/users';
+import { blendColors, changeOpacity } from 'mattermost-redux/utils/theme_utils';
+import { displayUsername, isSystemAdmin } from 'mattermost-redux/utils/user_utils';
 
-import {searchForTerm} from 'actions/post_actions';
-import {addUserToTeam} from 'actions/team_actions';
-import {getCurrentLocale, getTranslations} from 'selectors/i18n';
+import { searchForTerm } from 'actions/post_actions';
+import { addUserToTeam } from 'actions/team_actions';
+import { getCurrentLocale, getTranslations } from 'selectors/i18n';
 import store from 'stores/redux_store';
 
-import {focusPost} from 'components/permalink_view/actions';
-import type {TextboxElement} from 'components/textbox';
+import { focusPost } from 'components/permalink_view/actions';
+import type { TextboxElement } from 'components/textbox';
 
-import {getHistory} from 'utils/browser_history';
-import Constants, {FileTypes, ValidationErrors, A11yCustomEventTypes, AdvancedTextEditorTextboxIds} from 'utils/constants';
-import type {A11yFocusEventDetail} from 'utils/constants';
+import { getHistory } from 'utils/browser_history';
+import Constants, { FileTypes, ValidationErrors, A11yCustomEventTypes, AdvancedTextEditorTextboxIds } from 'utils/constants';
+import type { A11yFocusEventDetail } from 'utils/constants';
 import * as Keyboard from 'utils/keyboard';
 import * as UserAgent from 'utils/user_agent';
 
-import {joinPrivateChannelPrompt} from './channel_utils';
+import { joinPrivateChannelPrompt } from './channel_utils';
 
 const CLICKABLE_ELEMENTS = [
     'a',
@@ -88,7 +88,7 @@ export enum TimeInformation {
 export type TimeUnit = Exclude<TimeInformation, TimeInformation.FUTURE | TimeInformation.PAST>;
 export type TimeDirection = TimeInformation.FUTURE | TimeInformation.PAST;
 
-export function createSafeId(prop: {props: {defaultMessage: string}} | string): string | undefined {
+export function createSafeId(prop: { props: { defaultMessage: string } } | string): string | undefined {
     let str = '';
 
     if (typeof prop !== 'string' && prop.props && prop.props.defaultMessage) {
@@ -117,7 +117,7 @@ export function isUnhandledLineBreakKeyCombo(e: React.KeyboardEvent | KeyboardEv
  */
 export function insertLineBreakFromKeyEvent(e: KeyboardEvent): string {
     const el = e.target as TextboxElement;
-    const {selectionEnd, selectionStart, value} = el;
+    const { selectionEnd, selectionStart, value } = el;
 
     // replace text selection (or insert if no selection) with new line character
     const newValue = `${value.substr(0, selectionStart!)}\n${value.substr(selectionEnd!, value.length)}`;
@@ -151,18 +151,18 @@ export function getRemainingDaysFromFutureTimestamp(timestamp?: number): number 
 export function addTimeToTimestamp(timestamp: number, type: TimeUnit, diff: number, timeline: TimeDirection) {
     let modifier = 1;
     switch (type) {
-    case TimeInformation.SECONDS:
-        modifier = MS_PER_SECOND;
-        break;
-    case TimeInformation.MINUTES:
-        modifier = MS_PER_MINUTE;
-        break;
-    case TimeInformation.HOURS:
-        modifier = MS_PER_HOUR;
-        break;
-    case TimeInformation.DAYS:
-        modifier = MS_PER_DAY;
-        break;
+        case TimeInformation.SECONDS:
+            modifier = MS_PER_SECOND;
+            break;
+        case TimeInformation.MINUTES:
+            modifier = MS_PER_MINUTE;
+            break;
+        case TimeInformation.HOURS:
+            modifier = MS_PER_HOUR;
+            break;
+        case TimeInformation.DAYS:
+            modifier = MS_PER_DAY;
+            break;
     }
 
     return timeline === TimeInformation.FUTURE ? timestamp + (diff * modifier) : timestamp - (diff * modifier);
@@ -327,7 +327,7 @@ export function getCompassIconClassName(fileTypeIn: string, outline = true, larg
 }
 
 export function getIconClassName(fileTypeIn: string) {
-    const fileType = fileTypeIn.toLowerCase()as keyof typeof Constants.ICON_FROM_TYPE;
+    const fileType = fileTypeIn.toLowerCase() as keyof typeof Constants.ICON_FROM_TYPE;
 
     if (fileType in Constants.ICON_NAME_FROM_TYPE) {
         return Constants.ICON_NAME_FROM_TYPE[fileType];
@@ -659,7 +659,7 @@ function updateCodeTheme(codeTheme: string) {
             if (UserAgent.isFirefox()) {
                 link.addEventListener('load', () => {
                     changeCss('code.hljs', 'visibility: visible');
-                }, {once: true});
+                }, { once: true });
             } else {
                 changeCss('code.hljs', 'visibility: visible');
             }
@@ -734,7 +734,7 @@ function convertEmToPixels(el: Element, remNum: number | any): number {
 
 export function getCaretXYCoordinate(textArea: HTMLTextAreaElement) {
     if (!textArea) {
-        return {x: 0, y: 0};
+        return { x: 0, y: 0 };
     }
     const start = textArea.selectionStart;
     const end = textArea.selectionEnd;
@@ -759,20 +759,20 @@ export function getCaretXYCoordinate(textArea: HTMLTextAreaElement) {
 export function getViewportSize(win?: Window) {
     const w = win || window;
     if (w.innerWidth != null) {
-        return {w: w.innerWidth, h: w.innerHeight};
+        return { w: w.innerWidth, h: w.innerHeight };
     }
-    const {clientWidth, clientHeight} = w.document.body;
-    return {w: clientWidth, h: clientHeight};
+    const { clientWidth, clientHeight } = w.document.body;
+    return { w: clientWidth, h: clientHeight };
 }
 
 export function offsetTopLeft(el: HTMLElement) {
     if (!(el instanceof HTMLElement)) {
-        return {top: 0, left: 0};
+        return { top: 0, left: 0 };
     }
     const rect = el.getBoundingClientRect();
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    return {top: rect.top + scrollTop, left: rect.left + scrollLeft};
+    return { top: rect.top + scrollTop, left: rect.left + scrollLeft };
 }
 
 export function getSuggestionBoxAlgn(textArea: HTMLTextAreaElement, pxToSubstract = 0, alignWithTextBox = false) {
@@ -783,14 +783,14 @@ export function getSuggestionBoxAlgn(textArea: HTMLTextAreaElement, pxToSubstrac
         };
     }
 
-    const {x: caretXCoordinateInTxtArea, y: caretYCoordinateInTxtArea} = getCaretXYCoordinate(textArea);
-    const {w: viewportWidth, h: viewportHeight} = getViewportSize();
-    const {offsetWidth: textAreaWidth} = textArea;
+    const { x: caretXCoordinateInTxtArea, y: caretYCoordinateInTxtArea } = getCaretXYCoordinate(textArea);
+    const { w: viewportWidth, h: viewportHeight } = getViewportSize();
+    const { offsetWidth: textAreaWidth } = textArea;
 
     const suggestionBoxWidth = Math.min(textAreaWidth, Constants.SUGGESTION_LIST_MAXWIDTH);
 
     // value in pixels for the offsetLeft for the textArea
-    const {top: txtAreaOffsetTop, left: txtAreaOffsetLft} = offsetTopLeft(textArea);
+    const { top: txtAreaOffsetTop, left: txtAreaOffsetLft } = offsetTopLeft(textArea);
 
     // how many pixels to the right should be moved the suggestion box
     let pxToTheRight = (caretXCoordinateInTxtArea) - (pxToSubstract);
@@ -823,7 +823,7 @@ export function getSuggestionBoxAlgn(textArea: HTMLTextAreaElement, pxToSubstrac
 export function getPxToSubstract(char = '@') {
     // depending on the triggering character different values must be substracted
     if (char === '@') {
-    // mention name padding-left 2.4rem as stated in suggestion-list__content .suggestion-list__item
+        // mention name padding-left 2.4rem as stated in suggestion-list__content .suggestion-list__item
         const mentionNamePaddingLft = convertEmToPixels(document.documentElement, Constants.MENTION_NAME_PADDING_LEFT);
 
         // half of width of avatar stated in .Avatar.Avatar-sm (24px)
@@ -1213,9 +1213,9 @@ export function isTextTransfer(dataTransfer: DataTransfer) {
 
 export function isTextDroppableEvent(e: Event) {
     return (e instanceof DragEvent) &&
-           (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) &&
-           e.dataTransfer !== null &&
-           isTextTransfer(e.dataTransfer);
+        (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) &&
+        e.dataTransfer !== null &&
+        isTextTransfer(e.dataTransfer);
 }
 
 export function clearFileInput(elm: HTMLInputElement) {
@@ -1234,7 +1234,7 @@ export function clearFileInput(elm: HTMLInputElement) {
 /**
  * @deprecated Use react-intl instead, only place its usage can be justified is in the redux actions
  */
-export function localizeMessage({id, defaultMessage}: {id: string; defaultMessage?: string}) {
+export function localizeMessage({ id, defaultMessage }: { id: string; defaultMessage?: string }) {
     const state = store.getState();
 
     const locale = getCurrentLocale(state);
@@ -1250,7 +1250,7 @@ export function localizeMessage({id, defaultMessage}: {id: string; defaultMessag
 /**
  * @deprecated If possible, use intl.formatMessage instead. If you have to use this, remember to mark the id using `t`
  */
-export function localizeAndFormatMessage(descriptor: {id: string; defaultMessage?: string}, template: { [name: string]: any } | undefined) {
+export function localizeAndFormatMessage(descriptor: { id: string; defaultMessage?: string }, template: { [name: string]: any } | undefined) {
     const base = localizeMessage(descriptor);
 
     if (!template) {
@@ -1313,10 +1313,10 @@ export async function handleFormattedTextClick(e: React.MouseEvent, currentRelat
 
             if (match) {
                 // Get team by name
-                const {teamName} = match;
+                const { teamName } = match;
                 let team = getTeamByName(state, teamName);
                 if (!team) {
-                    const {data: teamData} = await store.dispatch(getTeamByNameAction(teamName));
+                    const { data: teamData } = await store.dispatch(getTeamByNameAction(teamName));
                     team = teamData;
                 }
                 if (team && team.delete_at === 0) {
@@ -1324,17 +1324,17 @@ export async function handleFormattedTextClick(e: React.MouseEvent, currentRelat
 
                     // Handle channel url - Get channel data from channel name
                     if (match.type === 'channel') {
-                        const {channelName} = match;
+                        const { channelName } = match;
                         channel = getChannelsNameMapInTeam(state, team.id)[channelName as string];
                         if (!channel) {
-                            const {data: channelData} = await store.dispatch(getChannelByNameAndTeamName(teamName, channelName!, true));
+                            const { data: channelData } = await store.dispatch(getChannelByNameAndTeamName(teamName, channelName!, true));
                             channel = channelData;
                         }
                     } else { // Handle permalink - Get channel data from post
-                        const {postId} = match;
+                        const { postId } = match;
                         let post = getPost(state, postId!);
                         if (!post) {
-                            const {data: postData} = await store.dispatch(getPostAction(match.postId!));
+                            const { data: postData } = await store.dispatch(getPostAction(match.postId!));
                             post = postData!;
                         }
                         if (post) {
@@ -1342,7 +1342,7 @@ export async function handleFormattedTextClick(e: React.MouseEvent, currentRelat
 
                             channel = getChannel(state, post.channel_id);
                             if (!channel) {
-                                const {data: channelData} = await store.dispatch(getChannelAction(post.channel_id));
+                                const { data: channelData } = await store.dispatch(getChannelAction(post.channel_id));
                                 channel = channelData;
                             }
                         }
@@ -1356,7 +1356,7 @@ export async function handleFormattedTextClick(e: React.MouseEvent, currentRelat
                             }
                         }
                         if (!member) {
-                            const {data} = await store.dispatch(joinPrivateChannelPrompt(team, channel.display_name, false));
+                            const { data } = await store.dispatch(joinPrivateChannelPrompt(team, channel.display_name, false));
                             if (data!.join) {
                                 let error = false;
                                 if (!getTeamMemberships(state)[team.id]) {
@@ -1377,7 +1377,7 @@ export async function handleFormattedTextClick(e: React.MouseEvent, currentRelat
             e.stopPropagation();
 
             if (match && match.type === 'permalink' && isTeamSameWithCurrentTeam(state, match.teamName) && isReply && crtEnabled) {
-                store.dispatch(focusPost(match.postId ?? '', linkAttribute.value, user.id, {skipRedirectReplyPermalink: true}));
+                store.dispatch(focusPost(match.postId ?? '', linkAttribute.value, user.id, { skipRedirectReplyPermalink: true }));
             } else {
                 getHistory().push(linkAttribute.value);
             }
@@ -1491,12 +1491,12 @@ function isSelection() {
  * Checks if text is selected in the a textbox in center or in RHS or in edit mode of post
  */
 export function isTextSelectedInPostOrReply(e: React.KeyboardEvent | KeyboardEvent) {
-    const {id} = e.target as HTMLElement;
+    const { id } = e.target as HTMLElement;
 
     const isTypingInValidTextbox =
-    id === AdvancedTextEditorTextboxIds.InCenter ||
-    id === AdvancedTextEditorTextboxIds.InRHSComment ||
-    id === AdvancedTextEditorTextboxIds.InEditMode;
+        id === AdvancedTextEditorTextboxIds.InCenter ||
+        id === AdvancedTextEditorTextboxIds.InRHSComment ||
+        id === AdvancedTextEditorTextboxIds.InEditMode;
 
     if (isTypingInValidTextbox === false) {
         return false;
@@ -1612,7 +1612,7 @@ export const getRoleForTrackFlow = createSelector(
     (trackFlowRole) => {
         const startedByRole = TrackFlowRoles[trackFlowRole];
 
-        return {started_by_role: startedByRole};
+        return { started_by_role: startedByRole };
     },
 );
 
@@ -1626,7 +1626,7 @@ export function getRoleFromTrackFlow() {
     const sbr = getSbr();
     const startedByRole = TrackFlowRoles[sbr] ?? '';
 
-    return {started_by_role: startedByRole};
+    return { started_by_role: startedByRole };
 }
 
 export function getDatePickerLocalesForDateFns(locale: string, loadedLocales: Record<string, Locale>) {
@@ -1647,7 +1647,7 @@ export function getMediumFromTrackFlow() {
     const params = new URLSearchParams(window.location.search);
     const source = params.get('md') ?? '';
 
-    return {source};
+    return { source };
 }
 
 const TrackFlowSources: Record<string, string> = {
@@ -1666,17 +1666,17 @@ function getTrackFlowSource() {
 }
 
 export function getSourceForTrackFlow() {
-    return {source: getTrackFlowSource()};
+    return { source: getTrackFlowSource() };
 }
 
 export function a11yFocus(element: HTMLElement | null | undefined, keyboardOnly = true) {
     document.dispatchEvent(new CustomEvent<A11yFocusEventDetail>(
         A11yCustomEventTypes.FOCUS, {
-            detail: {
-                target: element,
-                keyboardOnly,
-            },
+        detail: {
+            target: element,
+            keyboardOnly,
         },
+    },
     ));
 }
 
@@ -1717,4 +1717,14 @@ export function sortUsersAndGroups(a: UserProfile | Group, b: UserProfile | Grou
 
 export function doesCookieContainsMMUserId() {
     return document.cookie.includes('MMUSERID=');
+}
+
+/**
+ * 浅拷贝实例
+ * @param obj 
+ * @returns 
+ * @author Nisus Liu
+ */
+export function shallowCopyInstance(obj: object) {
+    return Object.assign(Object.create(Object.getPrototypeOf(obj)), obj);
 }

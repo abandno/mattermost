@@ -24,7 +24,7 @@ type ReplyThreads struct {
 
 type TopicItem struct {
 	Post
-	ThreadType   string      `db:"thread_type" json:"thread_type"` // "thread" or "replythread"
+	ThreadType   ThreadType  `db:"thread_type" json:"thread_type"` // "thread" or "replythread"
 	PostId       string      `json:"post_id"`
 	ChannelId    string      `json:"channel_id"`
 	ReplyCount   int64       `json:"reply_count"`

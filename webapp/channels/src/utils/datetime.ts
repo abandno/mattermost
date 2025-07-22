@@ -108,3 +108,57 @@ export function relativeFormatDate(date: Moment, formatMessage: ReturnType<typeo
 
     return DateTime.fromJSDate(date.toDate()).toLocaleString();
 }
+
+
+
+/**
+ * 格式化时间戳为相对时间
+ * @param timestamp 时间戳（毫秒）
+ * @returns 相对时间字符串
+ * @author Nisus Liu
+ */
+export const formatTime = (timestamp: number): string => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (minutes < 60) {
+        return `${minutes}分钟前`;
+    } else if (hours < 24) {
+        return `${hours}小时前`;
+    } else {
+        return `${days}天前`;
+    }
+};
+
+/**
+ * 格式化时间戳为完整日期时间
+ * @param timestamp 时间戳（毫秒）
+ * @returns 完整日期时间字符串
+ * @author Nisus Liu
+ */
+export const formatDateTime = (timestamp: number): string => {
+    return new Date(timestamp).toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+};
+
+/**
+ * 格式化时间戳为日期
+ * @param timestamp 时间戳（毫秒）
+ * @returns 日期字符串
+ * @author Nisus Liu
+ */
+export const formatDate = (timestamp: number): string => {
+    return new Date(timestamp).toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+}; 

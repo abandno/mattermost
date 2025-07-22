@@ -1,65 +1,48 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useParams, useHistory } from 'react-router-dom';
 
 import { getCurrentTeamId } from 'mattermost-redux/selectors/entities/teams';
 import { getCurrentUserId } from 'mattermost-redux/selectors/entities/users';
-import { getThreadsForCurrentTeam } from 'mattermost-redux/actions/threads';
-import { getPost } from 'mattermost-redux/selectors/entities/posts';
-import { getThreadsInCurrentTeam, getThreads } from 'mattermost-redux/selectors/entities/threads';
 
 import { selectLhsItem } from 'actions/views/lhs';
 import { LhsItemType, LhsPage } from 'types/store/lhs';
 
 import LoadingScreen from 'components/loading_screen';
-
-import type { GlobalState } from 'types/store';
-import type { UserThread } from '@mattermost/types/threads';
+import {useMd2PlainText} from 'hooks/useMd2PlainText';
+import { formatTime } from 'utils/datetime';
 
 import './topics_page.scss';
 import { getHotTopicsAction, hotTopicsSelector } from 'mattermost-redux/reducers/combine/topic';
-import { before } from 'lodash';
 
 // 渲染话题项组件 - 移到组件外部
-const TopicItem = ({ topic }) => {
-    const formatTime = (timestamp: number) => {
-        const now = Date.now();
-        const diff = now - timestamp;
-        const minutes = Math.floor(diff / (1000 * 60));
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+const TopicItem = ({ topic, team }: { topic: any, team: string }) => {
+    const history = useHistory();
 
-        if (minutes < 60) {
-            return `${minutes}分钟前`;
-        } else if (hours < 24) {
-            return `${hours}小时前`;
-        } else {
-            return `${days}天前`;
+    const handleTopicClick = (topic: any) => {
+        // 跳转到帖子详情页，格式 /团队/topics/话题id
+        if (team && topic?.postId) {
+            history.push(`/${team}/topics/${topic.postId}`);
         }
     };
 
-    const handleTopicClick = (topic) => {
-        // 跳转到帖子详情页
-    }
+    // Use the new hook for markdown to plain text conversion
+    const plainText = useMd2PlainText(topic?.message, {
+        maxLength: 100,
+    });
 
     return (
-        <div className='topic-item'>
-            <div className='topic-title' onClick={() => handleTopicClick(topic)}>
-                {topic?.message ?
-                    (topic.message.length > 50 ?
-                        topic.message.substring(0, 50) + '...' :
-                        topic.message
-                    ) :
-                    '话题标题加载中...'
-                }
+        <div className='topic-item' onClick={() => handleTopicClick(topic)}>
+            <div className='topic-title'>
+                {plainText || '话题标题加载中...'}
             </div>
             <div className='topic-meta'>
                 <span className='topic-author'>作者: {topic?.user_id || '未知'}</span>
-                <span className='topic-replies'>回复数: {topic.reply_count}</span>
-                <span className='topic-time'>{formatTime(topic.last_reply_at)}</span>
+                <span className='topic-replies'>{topic.reply_count || 0} 回复</span>
+                <span className='topic-time'>{formatTime(topic.last_reply_at || topic.create_at)}</span>
             </div>
         </div>
     );
@@ -72,8 +55,9 @@ const TopicsPage = () => {
     const currentUserId = useSelector(getCurrentUserId);
 
     const [isLoading, setIsLoading] = useState(true);
-    const [beforeAfter, setBeforeAfter] = useState([])
-    const [direction, setDirection] = useState('first');
+    const [error, setError] = useState<string | null>(null);
+    const [rollPageOpts, setRollPageOpts] = useState<[number, number, string]>([0, 0, 'first'])
+    
     // 按回复数排序，获取热门话题（回复数多的）
     const hotTopics = useSelector(hotTopicsSelector);
     const latestTopics: any[] = []
@@ -87,15 +71,17 @@ const TopicsPage = () => {
         const fetchHotTopics = async () => {
             if (currentTeamId && currentUserId) {
                 setIsLoading(true);
+                setError(null);
                 try {
                     await dispatch(getHotTopicsAction({
-                        before: beforeAfter[0],
-                        after: beforeAfter[1],
+                        before: rollPageOpts[0],
+                        after: rollPageOpts[1],
                         perPage: 10,
-                        direction,
+                        direction: rollPageOpts[2],
                     }));
                 } catch (error) {
                     console.error('Failed to fetch threads:', error);
+                    setError('获取话题列表失败');
                 } finally {
                     setIsLoading(false);
                 }
@@ -103,19 +89,28 @@ const TopicsPage = () => {
         }
 
         fetchHotTopics();
-    }, [dispatch, currentTeamId, currentUserId, beforeAfter, direction])
+    }, [dispatch, currentTeamId, currentUserId, rollPageOpts])
 
     // 如果团队ID不匹配或正在加载，显示加载状态
     if (!currentTeamId || isLoading) {
         return <LoadingScreen centered={true} />;
     }
 
+    if (error) {
+        return (
+            <div className='topics-page'>
+                <div className='error-state'>
+                    <div className='error-icon'>⚠️</div>
+                    <div className='error-message'>{error}</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className='topics-page'>
             <div className='topics-page__header'>
                 <h1>话题页</h1>
-                <p>团队: {team}</p>
                 <p>
                     <span>最热 {hotTopics.length}</span>
                     <span>最新 {latestTopics.length}</span>
@@ -127,7 +122,7 @@ const TopicsPage = () => {
                     <div className='topics-list'>
                         {hotTopics.length > 0 ? (
                             hotTopics.map((topic) => (
-                                <TopicItem key={topic.postId} topic={topic} />
+                                <TopicItem key={topic.postId} topic={topic} team={team} />
                             ))
                         ) : (
                             <div className='no-topics'>暂无热门话题</div>
@@ -139,7 +134,7 @@ const TopicsPage = () => {
                     <div className='topics-list'>
                         {latestTopics.length > 0 ? (
                             latestTopics.map((topic) => (
-                                <TopicItem key={topic.id} topic={topic} />
+                                <TopicItem key={topic.id} topic={topic} team={team} />
                             ))
                         ) : (
                             <div className='no-topics'>暂无最新话题</div>

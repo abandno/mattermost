@@ -40,7 +40,7 @@ export function getHotTopicsAction({
                     after,
                     perPage,
                     direction,
-                    type: 'hot'
+                    orderMode: 'hot'
             });
         } catch (error) {
             forceLogoutIfNecessary(error, dispatch, getState);

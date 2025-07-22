@@ -26,6 +26,19 @@ func (s *SqlPostReplyStore) Save(reply *model.PostReply) error {
 	return err
 }
 
+func (s *SqlPostReplyStore) GetByPostId(postId string) (*model.PostReply, error) {
+	var reply model.PostReply
+	err := s.GetReplica().Get(&reply, `
+		SELECT postid, pid, rid, drcount, createat, updateat, deleteat
+		FROM postreply
+		WHERE postid = $1 AND deleteat = 0
+	`, postId)
+	if err != nil {
+		return nil, err
+	}
+	return &reply, nil
+}
+
 func (s *SqlPostReplyStore) IncrDRcountByPostId(postId string) error {
 	_, err := s.GetMaster().Exec(`
 		UPDATE postreply SET drcount = drcount + 1, updateat = EXTRACT(EPOCH FROM NOW()) * 1000 WHERE postid = $1
