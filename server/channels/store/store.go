@@ -1244,4 +1244,8 @@ type ReplyThreadsStore interface {
 
 type TopicStore interface {
 	GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.TopicItem, error)
+	GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*model.TopicReplyList, error)
+	GetReplies4ThreadTopicLvl2(req *model.PostRepliesReq) (*model.TopicReplyList, error)
+	GetReplies4ReplyThreadTopic(req *model.PostRepliesReq) (*model.TopicReplyList, error)
+	GetReplies4ReplyThreadComment(req *model.PostRepliesReq) (*model.TopicReplyList, error)
 }

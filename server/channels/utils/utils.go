@@ -281,7 +281,34 @@ func StrFormat(name string, tmpl string, params any) (string, error) {
 
 // ToInt 字符串转整数，如果出错，返回指定的缺省值
 func ToInt(str string, def int) int {
+	if str == "" {
+		return def
+	}
 	i, err := strconv.Atoi(str)
+	if err != nil {
+		return def
+	}
+	return i
+}
+
+// ToInt64 字符串转整数，如果出错，返回指定的缺省值
+func ToInt64(str string, def int64) int64 {
+	if str == "" {
+		return def
+	}
+	i, err := strconv.ParseInt(str, 10, 64)
+	if err != nil {
+		return def
+	}
+	return i
+}
+
+// ToUInt64 字符串转无符号整数，如果出错，返回指定的缺省值
+func ToUInt64(str string, def uint64) uint64 {
+	if str == "" {
+		return def
+	}
+	i, err := strconv.ParseUint(str, 10, 64)
 	if err != nil {
 		return def
 	}

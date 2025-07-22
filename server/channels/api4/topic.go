@@ -3,7 +3,6 @@ package api4
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/shared/mlog"
@@ -29,21 +28,9 @@ func getTopics(c *Context, w http.ResponseWriter, r *http.Request) {
 	if opts.Direction == "" {
 		opts.Direction = "first"
 	}
-	if perPage != "" {
-		if n, err := strconv.Atoi(perPage); err == nil {
-			opts.Limit = n
-		}
-	}
-	if before != "" {
-		if n, err := strconv.ParseInt(before, 10, 64); err == nil {
-			opts.Before = n
-		}
-	}
-	if after != "" {
-		if n, err := strconv.ParseInt(after, 10, 64); err == nil {
-			opts.After = n
-		}
-	}
+	opts.Limit = utils.ToUInt64(perPage, 10)
+	opts.Before = utils.ToInt64(before, 0)
+	opts.After = utils.ToInt64(after, 0)
 
 	topics, err := c.App.GetTopics(c.AppContext, opts)
 	if err != nil {
@@ -79,21 +66,9 @@ func getTopicReplies(c *Context, w http.ResponseWriter, r *http.Request) {
 	if opts.Direction == "" {
 		opts.Direction = "first"
 	}
-	if perPage != "" {
-		if n, err := strconv.Atoi(perPage); err == nil {
-			opts.Limit = uint64(n)
-		}
-	}
-	if before != "" {
-		if n, err := strconv.ParseInt(before, 10, 64); err == nil {
-			opts.Before = n
-		}
-	}
-	if after != "" {
-		if n, err := strconv.ParseInt(after, 10, 64); err == nil {
-			opts.After = n
-		}
-	}
+	opts.Limit = utils.ToUInt64(perPage, 10)
+	opts.Before = utils.ToInt64(before, 0)
+	opts.After = utils.ToInt64(after, 0)
 
 	req := &model.PostRepliesReq{
 		TopicPageOpts: *opts,
