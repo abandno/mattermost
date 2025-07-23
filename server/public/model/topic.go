@@ -38,6 +38,7 @@ type PostRepliesReq struct {
 // PostReplyExt 话题回复
 type PostReplyExt struct {
 	*PostReply
+	Id         string `json:"id"`
 	EditAt     int64  `json:"edit_at"`
 	IsPinned   bool   `json:"is_pinned"`
 	UserId     string `json:"user_id"`
@@ -45,9 +46,7 @@ type PostReplyExt struct {
 	RootId     string `json:"root_id"`
 	OriginalId string `json:"original_id"`
 
-	Message       string `json:"message"`
-	MessageSource string `json:"message_source,omitempty"`
-	ReplyCount    int64  `json:"reply_count"`
+	Message string `json:"message"`
 }
 
 // TopicReplyList 话题回复列表

@@ -236,13 +236,16 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadTopic(req *model.PostRepliesReq) (
 	subQuery := sq.
 		Select("*").
 		From("postreply").
-		Where(sq.Lt{"updateat": req.After}).
 		OrderBy("updateat DESC").
 		Limit(req.Limit)
+	if req.After > 0 {
+		subQuery.Where(sq.Lt{"updateat": req.After})
+	}
 
 	// 2. 主查询：join posts
 	query := sq.
-		Select("p.*, pr.pid, pr.rid").
+		Select(`pr.pid Pid, pr.rid Rid, p.id PostId, p.message Message, p.userid UserId, p.channelid ChannelId, 
+		p.createat CreateAt, p.updateat UpdateAt, p.editat EditAt, p.rootid RootId, p.originalid OriginalId`).
 		FromSelect(subQuery, "pr").
 		Join("posts p ON p.id = pr.postid").
 		OrderBy("p.updateat DESC")

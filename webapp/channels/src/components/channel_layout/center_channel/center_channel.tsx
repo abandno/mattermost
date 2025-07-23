@@ -126,12 +126,12 @@ export default class CenterChannel extends React.PureComponent<Props, State> {
                             component={Drafts}
                         />
                         <Route
-                            path={`/:team(${TEAM_NAME_PATH_PATTERN})/topics`}
-                            component={TopicsPage}
-                        />
-                        <Route
                             path={`/:team(${TEAM_NAME_PATH_PATTERN})/topics/:topicId`}
                             component={TopicPageDetail}
+                        />
+                        <Route
+                            path={`/:team(${TEAM_NAME_PATH_PATTERN})/topics`}
+                            component={TopicsPage}
                         />
 
                         <Redirect to={lastChannelPath}/>

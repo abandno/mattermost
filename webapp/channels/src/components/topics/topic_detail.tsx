@@ -21,6 +21,8 @@ import type { GlobalState } from 'types/store';
 import './topic_detail.scss';
 import { Post } from '@mattermost/types/posts';
 
+const PER_PAGE = 10;
+
 const TopicDetail = () => {
     const dispatch = useDispatch();
     const { team, topicId } = useParams<{ team: string; topicId: string }>();
@@ -33,8 +35,8 @@ const TopicDetail = () => {
     const [comments, setComments] = useState<Post[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [rollPageOpts, setRollPageOpts] = useState<[number, number, string]>([0, 0, 'first'])
-    const [topicDirectReplyTree, setTopicDirectReplyTree] = useState<CommentTree>(new CommentTree(topicId, 'topic-reply', (data: any) => data.updateat));
-    const [topicCommentTree, setTopicCommentTree] = useState<CommentTree>(new CommentTree(topicId, 'topic', (data: any) => data.updateat));
+    const [topicDirectReplyTree, setTopicDirectReplyTree] = useState<CommentTree>(new CommentTree(topicId, 'topic-reply', PER_PAGE, (data: any) => data.updateat));
+    const [topicCommentTree, setTopicCommentTree] = useState<CommentTree>(new CommentTree(topicId, 'topic', PER_PAGE, (data: any) => data.updateat));
     const threadType = topic?.root_id ? 'thread' : 'replythread';
 
     useEffect(() => {
@@ -55,7 +57,7 @@ const TopicDetail = () => {
                         // 如果有引用消息，获取引用内容
                         if (result.data.qpid) {
                             const quoted = await dispatch(getPost(result.data.qpid));
-                            setQuotedPost(quoted);
+                            setQuotedPost(quoted.data || null);
                         }
                     } else {
                         setError('话题不存在或无法访问');
@@ -78,13 +80,13 @@ const TopicDetail = () => {
         const reps = await Client4.getTopicReplies(
             currentUserId,
             currentTeamId,
-            commentNode.id,
-            commentNode.pid || '',
-            commentNode.rid || '',
-            location,
-            threadType,
-            replvl,
             {
+                postId: commentNode.id,
+                threadType,
+                location,
+                pid: commentNode.pid,
+                rid: commentNode.rid,
+                replvl,
                 before: commentNode.before,
                 after: commentNode.after,
                 perPage: 10,
@@ -100,7 +102,7 @@ const TopicDetail = () => {
     if (quotedPost) {
         useEffect(() => {
             fetchReplies(topicDirectReplyTree, 'topic', threadType, 2).then(reps => {
-                topicDirectReplyTree.update(topicId, reps)
+                topicDirectReplyTree.update(topicId, reps?.replies)
                 setTopicDirectReplyTree(topicDirectReplyTree.copy()); // 引用改变, 重渲染;
             })
         }, [topicId]);
@@ -109,7 +111,7 @@ const TopicDetail = () => {
     // 话题的评论树
     useEffect(() => {
         fetchReplies(topicCommentTree, 'topic', threadType, 1).then(reps => {
-            topicCommentTree.update(topicId, reps)
+            topicCommentTree.update(topicId, reps?.replies)
             setTopicCommentTree(topicCommentTree.copy()); // 引用改变, 重渲染;
         })
     }, [topicId]);

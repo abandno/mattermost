@@ -1,21 +1,23 @@
-import { AlphaNum, AlphaNumN } from "@mattermost/types/general";
+import { AlphaNum, AlphaNumN, StringN } from "@mattermost/types/general";
 import { shallowCopyInstance } from "mattermost-webapp/src/utils/utils";
 
 type CommentNodeRole = 'topic' | 'comment' | 'reply' | 'topic-reply';
 type OriginItem = {
     id: string;
-    pid: string | null;
+    pid: StringN;
     [key: string]: any;
 }
 
 export class CommentNode {
     public before: AlphaNumN;
     public after: AlphaNumN;
+    public hasMore: boolean;
     constructor(
         public readonly id: string,
-        public readonly pid: string | null,
-        public readonly rid: string | null,
+        public readonly pid: StringN,
+        public readonly rid: StringN,
         public readonly role: CommentNodeRole, // 当期节点的角色  什么类型的树, topic的直接回复树 | topic 的评论树
+        public readonly perPage: number,
         public readonly data: OriginItem, // 当前节点原数据
         public readonly children: CommentNode[],
     ) {
@@ -27,6 +29,8 @@ export class CommentNode {
         // 当前页所在位置
         this.before = null;
         this.after = null;
+        this.perPage = perPage;
+        this.hasMore = true;
     }
 
     public hasChildren() {
@@ -51,16 +55,17 @@ export class CommentTree extends CommentNode {
     constructor(
         public readonly rootId: string,
         public readonly role: CommentNodeRole,
+        public readonly perPage: number,
         public readonly offsetExtracter: (data: any) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
     ) {
-        super(rootId, null, null, role, { id: rootId, pid: null }, []);
+        super(rootId, null, null, role, perPage, { id: rootId, pid: null }, []);
     }
 
-    // 首次加载根树
-    init(data: OriginItem[]) {
-        // data -> Node
-        this.handleData(this.id, data);
-    }
+    // // 首次加载根树
+    // init(data: OriginItem[]) {
+    //     // data -> Node
+    //     this.handleData(this.id, data);
+    // }
 
     update(nodeId: AlphaNum, data: OriginItem[]) {
         this.handleData(nodeId, data);
@@ -71,12 +76,15 @@ export class CommentTree extends CommentNode {
     }
 
     private handleData(nodeId: AlphaNum, data: OriginItem[]) {
+        if (!data) {
+            return;
+        }
         const node = nodeId == this.id ? this : this.nodeMap.get(nodeId);
         if (!node) {
             return;
         }
         const childRole: CommentNodeRole = this.getChildNodeRole();
-        data?.forEach(item => {
+        data.forEach(item => {
             const n = new CommentNode(item.id, item.pid, item.rid, childRole, item, []);
             this.nodeMap.set(item.id, n);
             node.children.push(n);
@@ -84,6 +92,7 @@ export class CommentTree extends CommentNode {
         // 更新当前页位置
         node.before = this.offsetExtracter(data[0]);
         node.after = this.offsetExtracter(data[data.length - 1]);
+        node.hasMore = data.length >= this.perPage;
     }
 
     private getChildNodeRole() {

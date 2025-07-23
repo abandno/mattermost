@@ -20,6 +20,9 @@ export type SystemSetting = {
     value: string;
 };
 
+export type StringN = string | null | undefined;
+export type NumberN = number | null | undefined;
+
 export type AlphaNum = string | number;
 
 export type AlphaNumN = string | number | null | undefined;

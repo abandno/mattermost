@@ -17,15 +17,17 @@ import { formatTime } from 'utils/datetime';
 
 import './topics_page.scss';
 import { getHotTopicsAction, hotTopicsSelector } from 'mattermost-redux/reducers/combine/topic';
+import { Post } from '@mattermost/types/posts';
 
 // 渲染话题项组件 - 移到组件外部
-const TopicItem = ({ topic, team }: { topic: any, team: string }) => {
+const TopicItem = ({ topic, team }: { topic: Post, team: string }) => {
     const history = useHistory();
 
-    const handleTopicClick = (topic: any) => {
+    const handleTopicClick = (topic: Post) => {
+        console.log('==handleTopicClick topic', topic, team);
         // 跳转到帖子详情页，格式 /团队/topics/话题id
-        if (team && topic?.postId) {
-            history.push(`/${team}/topics/${topic.postId}`);
+        if (team && topic?.id) {
+            history.push(`/${team}/topics/${topic.id}`);
         }
     };
 
@@ -60,7 +62,7 @@ const TopicsPage = () => {
     
     // 按回复数排序，获取热门话题（回复数多的）
     const hotTopics = useSelector(hotTopicsSelector);
-    const latestTopics: any[] = []
+    const latestTopics: Post[] = []
 
     useEffect(() => {
         // 设置左侧边栏选中状态为话题页

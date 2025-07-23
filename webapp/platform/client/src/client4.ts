@@ -64,7 +64,7 @@ import type {Draft} from '@mattermost/types/drafts';
 import type {CustomEmoji} from '@mattermost/types/emojis';
 import type {ServerError} from '@mattermost/types/errors';
 import type {FileInfo, FileUploadResponse, FileSearchResults} from '@mattermost/types/files';
-import type {SystemSetting} from '@mattermost/types/general';
+import type {StringN, SystemSetting} from '@mattermost/types/general';
 import type {
     Group,
     GroupPatch,
@@ -4594,19 +4594,26 @@ export default class Client4 {
     getTopicReplies = (
         userId: UserProfile['id'] = 'me',
         teamId: Team['id'],
-        postId: string,
-        pid: string,
-        rid: string,
-        threadType: string,
-        location: string,
-        replvl: number,
         {
-            before,
-            after,
+            postId,
+            threadType,
+            location,
+            pid = undefined,
+            rid = undefined,
+            replvl = undefined,
+            before = undefined,
+            after = undefined,
             perPage = PER_PAGE_DEFAULT,
             direction = 'first',
             orderMode = 'latest',
-        }: TopicPageRequest
+        }: TopicPageRequest & {
+            postId: string,
+            threadType: string,
+            location: string,
+            replvl?: number,
+            pid: StringN,
+            rid: StringN,
+        }
     ) => {
         const qs = buildQueryString({ 
             before, 
