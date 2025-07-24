@@ -32,9 +32,7 @@ const TopicItem = ({ topic, team }: { topic: Post, team: string }) => {
     };
 
     // Use the new hook for markdown to plain text conversion
-    const plainText = useMd2PlainText(topic?.message, {
-        maxLength: 100,
-    });
+    const [plainText, isMd] = useMd2PlainText(topic?.message, {maxLength: 100});
 
     return (
         <div className='topic-item' onClick={() => handleTopicClick(topic)}>

@@ -23,7 +23,7 @@ const QUOTED_MESSAGE_MAX_LENGTH = 200;
 
 const QuotedMessageContent = ({message}: {message: string}) => {
     // Use the new hook for markdown to plain text conversion
-    const plainText = useMd2PlainText(message, {maxLength: QUOTED_MESSAGE_MAX_LENGTH});
+    const [plainText, _] = useMd2PlainText(message, {maxLength: QUOTED_MESSAGE_MAX_LENGTH});
 
     return (
         <div className='quoted-message__content-text'>

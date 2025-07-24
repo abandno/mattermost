@@ -20,6 +20,7 @@ import type { GlobalState } from 'types/store';
 
 import './topic_detail.scss';
 import { Post } from '@mattermost/types/posts';
+import Markdown from 'components/markdown';
 
 const PER_PAGE = 10;
 
@@ -99,14 +100,14 @@ const TopicDetail = () => {
     }
 
     // 话题是引用串, 则获取话题的直接回复
-    if (quotedPost) {
-        useEffect(() => {
+    useEffect(() => {
+        if (quotedPost) {
             fetchReplies(topicDirectReplyTree, 'topic', threadType, 2).then(reps => {
                 topicDirectReplyTree.update(topicId, reps?.replies)
                 setTopicDirectReplyTree(topicDirectReplyTree.copy()); // 引用改变, 重渲染;
             })
-        }, [topicId]);
-    }
+        }
+    }, [topicId, quotedPost]);
 
     // 话题的评论树
     useEffect(() => {
@@ -139,6 +140,11 @@ const TopicDetail = () => {
     //     fetchComments();
     // }, [topicId, rollPageOpts]);
 
+    // 使用 markdown 转纯文本
+    const [topicPlainText, isMdTopic] = useMd2PlainText(topic?.message, { maxLength: 100 });
+    const [quotedPlainText, _] = useMd2PlainText(quotedPost?.message, { maxLength: 100 });
+
+
     // 如果团队ID不匹配或正在加载，显示加载状态
     if (!currentTeamId || isLoading) {
         return <LoadingScreen centered={true} />;
@@ -163,43 +169,32 @@ const TopicDetail = () => {
         );
     }
 
-    // 使用 markdown 转纯文本
-    const topicPlainText = useMd2PlainText(topic?.message, {
-        maxLength: 200,
-    });
-
-    const quotedPlainText = quotedPost ? useMd2PlainText(quotedPost?.message, {
-        maxLength: 100,
-    }) : null;
-
     return (
         <div className='topic-detail'>
             <div className='topic-detail__header'>
                 <h1>{topicPlainText || '话题标题加载中...'}</h1>
-                <p>团队: {team}</p>
-                <p>话题ID: {topicId}</p>
-            </div>
-            <div className='topic-detail__content'>
-                <div className='topic-detail__main'>
-                    <h2>话题内容</h2>
-                    <div className='topic-content'>
-                        <p>{topic.message}</p>
+                {quotedPost && (
+                    <div className='topic-quoted'>
+                        <span>{quotedPlainText}</span>
                     </div>
-
-                    {quotedPost && (
-                        <div className='topic-quoted'>
-                            <strong>引用内容</strong>
-                            <span>{quotedPlainText}</span>
-                        </div>
-                    )}
-                </div>
-
+                )}
                 <div className='topic-meta'>
+                    {/* <p>团队: {team}</p> */}
                     <span>作者: {topic.user_id || '未知'}</span>
                     <span>时间: {formatTime(topic.create_at)}</span>
                     <span>回复数: {topic.reply_count || 0}</span>
                 </div>
-
+            </div>
+            {isMdTopic && (
+                <div className='topic-detail__content'>
+                    <div className='topic-content'>
+                        <Markdown       
+                            message={topic.message}
+                        />
+                    </div>
+                </div>
+            )}
+            <div className='topic-detail__content'>
                 <div className='topic-detail__comments'>
                     <h3>评论区 ({topicCommentTree.childrenSize()})</h3>
                     <div className='comments-list'>

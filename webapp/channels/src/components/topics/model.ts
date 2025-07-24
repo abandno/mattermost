@@ -85,7 +85,7 @@ export class CommentTree extends CommentNode {
         }
         const childRole: CommentNodeRole = this.getChildNodeRole();
         data.forEach(item => {
-            const n = new CommentNode(item.id, item.pid, item.rid, childRole, item, []);
+            const n = new CommentNode(item.id, item.pid, item.rid, childRole, this.perPage, item, []);
             this.nodeMap.set(item.id, n);
             node.children.push(n);
         });

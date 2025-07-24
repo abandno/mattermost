@@ -49,6 +49,7 @@ func getTopicReplies(c *Context, w http.ResponseWriter, r *http.Request) {
 
 	var (
 		query      = r.URL.Query()
+		postId     = query.Get("post_id")
 		before     = query.Get("before")
 		after      = query.Get("after")
 		perPage    = query.Get("per_page")
@@ -56,7 +57,6 @@ func getTopicReplies(c *Context, w http.ResponseWriter, r *http.Request) {
 		orderMode  = query.Get("order_mode")
 		pid        = query.Get("pid")
 		rid        = query.Get("rid")
-		topicId    = query.Get("topic_id")
 		location   = query.Get("location")
 		threadType = query.Get("thread_type")
 		replvl     = query.Get("replvl")
@@ -75,7 +75,7 @@ func getTopicReplies(c *Context, w http.ResponseWriter, r *http.Request) {
 		Location:      model.TopicPostLocation(location),
 		Pid:           pid,
 		Rid:           rid,
-		PostId:        topicId,
+		PostId:        postId,
 		ThreadType:    model.ThreadType(threadType),
 		RepLvl:        utils.ToInt(replvl, 1),
 	}

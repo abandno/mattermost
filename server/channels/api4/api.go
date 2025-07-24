@@ -40,7 +40,7 @@ type Routes struct {
 	TeamMembersForUser *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/members'
 
 	UserTopics       *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/topics'
-	UserTopicReplies *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/topics/replies/{topic_id:[A-Za-z0-9]+}'
+	UserTopicReplies *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/topics/replies'
 
 	Channels                 *mux.Router // 'api/v4/channels'
 	Channel                  *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}'
@@ -202,7 +202,7 @@ func Init(srv *app.Server) (*API, error) {
 	api.BaseRoutes.TeamMembersForUser = api.BaseRoutes.User.PathPrefix("/teams/members").Subrouter()
 
 	api.BaseRoutes.UserTopics = api.BaseRoutes.User.PathPrefix("/teams/{team_id:[A-Za-z0-9]+}/topics").Subrouter()
-	api.BaseRoutes.UserTopicReplies = api.BaseRoutes.UserTopics.PathPrefix("/replies/{topic_id:[A-Za-z0-9]+}").Subrouter()
+	api.BaseRoutes.UserTopicReplies = api.BaseRoutes.UserTopics.PathPrefix("/replies").Subrouter()
 
 	api.BaseRoutes.Channels = api.BaseRoutes.APIRoot.PathPrefix("/channels").Subrouter()
 	api.BaseRoutes.Channel = api.BaseRoutes.Channels.PathPrefix("/{channel_id:[A-Za-z0-9]+}").Subrouter()

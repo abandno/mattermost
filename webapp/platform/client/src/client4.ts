@@ -4616,6 +4616,7 @@ export default class Client4 {
         }
     ) => {
         const qs = buildQueryString({ 
+            post_id: postId,
             before, 
             after, 
             per_page: perPage, 
@@ -4628,7 +4629,7 @@ export default class Client4 {
             replvl,
         });
         return this.doFetch<any>(
-            `${this.getUserTopicsRoute(userId, teamId)}/replies/${postId}${qs}`,
+            `${this.getUserTopicsRoute(userId, teamId)}/replies${qs}`,
             { method: 'get' },
         );
     };
