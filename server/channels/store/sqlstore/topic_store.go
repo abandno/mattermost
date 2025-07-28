@@ -9,6 +9,7 @@ import (
 	"github.com/mattermost/mattermost/server/v8/channels/utils"
 	sq "github.com/mattermost/squirrel"
 	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
 )
 
 type SqlTopicStore struct {
@@ -141,6 +142,11 @@ func (s *SqlTopicStore) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.Topic
 		}
 	}
 
+	if opts.Direction == "prev" || opts.Direction == "last" {
+		// 翻转 threadsRows
+		threadsRows = funk.Reverse(threadsRows).([]*model.TopicItem)
+	}
+
 	return threadsRows, err
 }
 
@@ -191,8 +197,8 @@ func getLatestReplies(s *SqlTopicStore, ids []string, mode model.ThreadType) map
 // thread + topic + lvl1（评论列表，讨论串里找）
 func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*model.TopicReplyList, error) {
 	query := s.getQueryBuilder().
-		Select("Posts.*").
-		From("Posts").
+		Select("p.id PostId, p.message Message, p.userid UserId, p.createat CreateAt, p.updateat UpdateAt").
+		From("Posts p").
 		Where(sq.Eq{"RootId": req.PostId}).
 		Where(sq.Eq{"DeleteAt": 0}).
 		Limit(req.Limit)
@@ -202,6 +208,15 @@ func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*
 		if req.After > 0 {
 			query.Where(sq.Lt{"updateat": req.After})
 		}
+		query.OrderBy("updateat DESC")
+	case "prev":
+		if req.Before > 0 {
+			query.Where(sq.Gt{"updateat": req.Before})
+		}
+		query.OrderBy("updateat ASC")
+	case "last":
+		query.OrderBy("updateat ASC")
+	case "first":
 		query.OrderBy("updateat DESC")
 	default:
 		// 暂仅支持向后加载更多
@@ -216,6 +231,14 @@ func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*
 
 	replies := []*model.PostReplyExt{}
 	err = s.GetReplica().Select(&replies, sql, args...)
+	if err != nil {
+		mlog.Error("", mlog.Err(err))
+	}
+
+	if req.Direction == "prev" || req.Direction == "last" {
+		// 翻转
+		replies = funk.Reverse(replies).([]*model.PostReplyExt)
+	}
 
 	result := &model.TopicReplyList{
 		Replies: replies,
@@ -236,10 +259,29 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadTopic(req *model.PostRepliesReq) (
 	subQuery := sq.
 		Select("*").
 		From("postreply").
-		OrderBy("updateat DESC").
+		// OrderBy("updateat DESC").
+		Where(sq.Eq{"pid": req.PostId}).
+		Where(sq.NotEq{"postid": req.PostId}).
 		Limit(req.Limit)
-	if req.After > 0 {
-		subQuery.Where(sq.Lt{"updateat": req.After})
+
+	switch req.Direction {
+	case "next":
+		if req.After > 0 {
+			subQuery.Where(sq.Lt{"updateat": req.After})
+		}
+		subQuery.OrderBy("updateat DESC")
+	case "prev":
+		if req.Before > 0 {
+			subQuery.Where(sq.Gt{"updateat": req.Before})
+		}
+		subQuery.OrderBy("updateat ASC")
+	case "last":
+		subQuery.OrderBy("updateat ASC")
+	case "first":
+		subQuery.OrderBy("updateat DESC")
+	default:
+		// 暂仅支持向后加载更多
+		return nil, errors.New("invalid direction")
 	}
 
 	// 2. 主查询：join posts
@@ -259,7 +301,13 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadTopic(req *model.PostRepliesReq) (
 	posts := []*model.PostReplyExt{}
 	err = s.GetReplica().Select(&posts, sqlStr, args...)
 	if err != nil {
+		mlog.Error("", mlog.Err(err))
 		return nil, err
+	}
+
+	if req.Direction == "prev" || req.Direction == "last" {
+		// 翻转
+		posts = funk.Reverse(posts).([]*model.PostReplyExt)
 	}
 
 	return &model.TopicReplyList{Replies: posts, HasMore: len(posts) >= int(req.Limit)}, nil
@@ -291,12 +339,41 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadComment(req *model.PostRepliesReq)
 
 func (s *SqlTopicStore) fillPosts4FirstPage(req *model.PostRepliesReq, replies []*model.PostReplyExt) error {
 	postids := make([]string, 0, int(req.Limit))
+	pids := make([]string, 0, int(req.Limit))
 	for _, r := range replies {
 		postids = append(postids, r.PostId)
+		if r.Pid != nil && r.Pid != r.Rid {
+			pids = append(pids, *r.Pid)
+		}
 		if len(postids) >= int(req.Limit) {
 			break
 		}
 	}
+
+	// 被回复userId
+	parentPostUsersChan := make(chan map[string]*model.Post, 1)
+	go func() {
+		if len(pids) == 0 {
+			parentPostUsersChan <- map[string]*model.Post{}
+			return
+		}
+		query, args, err := sq.Select("Id, UserId").From("posts").Where(sq.Eq{"id": pids}).ToSql()
+		if err != nil {
+			mlog.Error("", mlog.Err(err))
+			parentPostUsersChan <- map[string]*model.Post{}
+			return
+		}
+		posts := []*model.Post{}
+		err = s.GetReplica().Select(&posts, query, args...)
+		if err != nil {
+			mlog.Error("", mlog.Err(err))
+			parentPostUsersChan <- map[string]*model.Post{}
+		}
+
+		m := funk.ToMap(posts, "Id")
+		parentPostUsersChan <- m.(map[string]*model.Post)
+		close(parentPostUsersChan)
+	}()
 
 	// 批量查 posts
 	posts := []*model.Post{}
@@ -313,12 +390,17 @@ func (s *SqlTopicStore) fillPosts4FirstPage(req *model.PostRepliesReq, replies [
 		postMap[p.Id] = p
 	}
 
+	parentPostMap := <-parentPostUsersChan
+
 	// 5. 组装返回
 	for _, r := range replies {
 		if post, ok := postMap[r.PostId]; ok {
 			r.Message = post.Message
 			r.UserId = post.UserId
 			r.ChannelId = post.ChannelId
+		}
+		if ppost, ok := parentPostMap[r.PostId]; ok {
+			r.PUserId = ppost.UserId
 		}
 	}
 	return nil
@@ -332,27 +414,29 @@ func (s *SqlTopicStore) queryDescendantReply(req *model.PostRepliesReq) ([]*mode
 		Select("*").
 		Prefix(`
         WITH RECURSIVE descendants AS (
-            SELECT *, 1 AS level 
+            SELECT *, 1 AS Level 
             FROM postreply 
             WHERE pid = $1 AND deleteat = 0 AND postid <> pid
             UNION ALL
-            SELECT pr.*, d.level + 1
+            SELECT pr.*, d.Level + 1
             FROM postreply pr
             INNER JOIN descendants d ON pr.pid = d.postid
             WHERE pr.deleteat = 0 AND d.level <= $2
         )
     `, req.PostId, maxrec).
 		From("descendants").
-		OrderBy("updateat DESC").
+		OrderBy("updateat ASC").
 		Limit(uint64(maxlimit)).
 		ToSql()
 	mlog.Debug("SqlTopicStore.GetReplies4ReplyThreadComment", mlog.String("sql", sql), mlog.Any("args", args))
 	if err != nil {
+		mlog.Error("", mlog.Err(err))
 		return nil, errors.Wrap(err, "Get_Tosql")
 	}
 	replies := []*model.PostReplyExt{}
 	err = s.GetReplica().Select(&replies, sql, args...)
 	if err != nil {
+		mlog.Error("", mlog.Err(err))
 		return nil, err
 	}
 	return replies, nil

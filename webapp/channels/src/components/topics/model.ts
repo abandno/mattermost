@@ -12,6 +12,9 @@ export class CommentNode {
     public before: AlphaNumN;
     public after: AlphaNumN;
     public hasMore: boolean;
+    public renderCount: number = 0;
+    public isLoading: boolean = false;
+
     constructor(
         public readonly id: string,
         public readonly pid: StringN,
@@ -31,6 +34,7 @@ export class CommentNode {
         this.after = null;
         this.perPage = perPage;
         this.hasMore = true;
+        this.renderCount = this.perPage;
     }
 
     public hasChildren() {
@@ -39,6 +43,25 @@ export class CommentNode {
 
     public childrenSize() {
         return this.children?.length ?? 0;
+    }
+    
+    // 检查是否还有更多数据可以加载
+    public canRenderMore() {
+        return this.renderCount < this.childrenSize();
+    }
+
+    // 用于一次性加载场景，前端实现加载更多，实际是渲染更多
+    public renderMore(more: number = this.perPage) {
+        this.renderCount = Math.min(this.renderCount + more, this.childrenSize());
+    }
+
+    // 原始children上遍历渲染
+    public renderChildren(render: (node: CommentNode) => any) {
+        const renderNodes: any[] = [];
+        for (let i = 0; i < this.renderCount; i++) {
+            renderNodes.push(render(this.children[i]));
+        }
+        return renderNodes;
     }
 }
 

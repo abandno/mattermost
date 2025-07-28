@@ -314,3 +314,37 @@ func ToUInt64(str string, def uint64) uint64 {
 	}
 	return i
 }
+
+func IsEmptyStrP(str *string) bool {
+	return str == nil || *str == ""
+}
+
+func IsNotEmptyStrP(str *string) bool {
+	return !IsEmptyStrP(str)
+}
+
+func IsBlankStrP(str *string) bool {
+	return str == nil || IsBlankStr(*str)
+}
+
+func IsNotBlankStrP(str *string) bool {
+	return !IsBlankStrP(str)
+}
+
+// 判断字符串是否为空
+func IsBlankStr(str string) bool {
+	return len(strings.TrimSpace(str)) == 0
+}
+
+func IsNotBlankStr(str string) bool {
+	return !IsBlankStr(str)
+}
+
+// Map 遍历列表转换元素
+func Map[T, R any](list []T, mapFn func(T) R) *[]R {
+	result := make([]R, len(list))
+	for i, item := range list {
+		result[i] = mapFn(item)
+	}
+	return &result
+}

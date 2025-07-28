@@ -4596,7 +4596,7 @@ export default class Client4 {
         teamId: Team['id'],
         {
             postId,
-            threadType,
+            threadTypes,
             location,
             pid = undefined,
             rid = undefined,
@@ -4608,14 +4608,14 @@ export default class Client4 {
             orderMode = 'latest',
         }: TopicPageRequest & {
             postId: string,
-            threadType: string,
+            threadTypes: string[],
             location: string,
             replvl?: number,
             pid: StringN,
             rid: StringN,
         }
     ) => {
-        const qs = buildQueryString({ 
+        const qs = buildQueryString({
             post_id: postId,
             before, 
             after, 
@@ -4624,7 +4624,7 @@ export default class Client4 {
             order_mode: orderMode,
             pid,
             rid,
-            thread_type: threadType,
+            thread_types: threadTypes?.join(','),
             location,
             replvl,
         });

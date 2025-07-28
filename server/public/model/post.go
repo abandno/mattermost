@@ -114,16 +114,22 @@ type Post struct {
 	HasReactions  bool            `json:"has_reactions,omitempty"`
 	RemoteId      *string         `json:"remote_id,omitempty"`
 
-	// Quote reference fields
-	Qrid *string `json:"qrid"` // Quote root ID - the root post of the quoted thread
-	Qpid *string `json:"qpid"` // Quote post ID - the specific post being quoted
-
 	// Transient data populated before sending a post to the client
 	ReplyCount   int64         `json:"reply_count"`
 	LastReplyAt  int64         `json:"last_reply_at"`
 	Participants []*User       `json:"participants"`
 	IsFollowing  *bool         `json:"is_following,omitempty"` // for root posts in collapsed thread mode indicates if the current user is following this thread
 	Metadata     *PostMetadata `json:"metadata,omitempty"`
+
+	// Quote reference fields
+	Pid      *string `json:"pid"` // Quote post ID - the specific post being quoted
+	Rid      *string `json:"rid"` // Quote root ID - the root post of the quoted thread
+	Tid      *string `json:"tid"`
+	RtId     *string `json:"rtid"`
+	TrCount  *int64  `json:"trcount"`
+	RtrCount *int64  `json:"rtrcount"`
+
+	ThreadTypes []string `json:"thread_types"`
 }
 
 func (o *Post) Auditable() map[string]any {
@@ -148,8 +154,8 @@ func (o *Post) Auditable() map[string]any {
 		"file_ids":        o.FileIds,
 		"pending_post_id": o.PendingPostId,
 		"remote_id":       o.RemoteId,
-		"qrid":            o.Qrid,
-		"qpid":            o.Qpid,
+		"rid":             o.Rid,
+		"pid":             o.Pid,
 		"reply_count":     o.ReplyCount,
 		"last_reply_at":   o.LastReplyAt,
 		"is_following":    o.IsFollowing,
@@ -342,8 +348,13 @@ func (o *Post) ShallowCopy(dst *Post) error {
 		dst.IsFollowing = NewPointer(*o.IsFollowing)
 	}
 	dst.RemoteId = o.RemoteId
-	dst.Qrid = o.Qrid
-	dst.Qpid = o.Qpid
+	dst.Rid = o.Rid
+	dst.Pid = o.Pid
+	dst.Tid = o.Tid
+	dst.RtId = o.RtId
+	dst.TrCount = o.TrCount
+	dst.RtrCount = o.RtrCount
+	dst.ThreadTypes = o.ThreadTypes
 	return nil
 }
 

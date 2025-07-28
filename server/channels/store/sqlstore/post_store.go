@@ -41,8 +41,8 @@ type postWithExtra struct {
 	ThreadReplyCount   int64
 	IsFollowing        *bool
 	ThreadParticipants model.StringArray
-	Qrid               *string
-	Qpid               *string
+	Rid               *string
+	Pid               *string
 	model.Post
 }
 
@@ -75,8 +75,6 @@ func postSliceColumnsWithTypes() []struct {
 		{"FileIds", reflect.Slice},
 		{"HasReactions", reflect.Bool},
 		{"RemoteId", reflect.String},
-		{"Qrid", reflect.String},
-		{"Qpid", reflect.String},
 	}
 }
 
@@ -100,8 +98,6 @@ func postToSlice(post *model.Post) []any {
 		model.ArrayToJSON(post.FileIds),
 		post.HasReactions,
 		post.RemoteId,
-		post.Qrid,
-		post.Qpid,
 	}
 }
 
@@ -383,9 +379,7 @@ func (s *SqlPostStore) Update(rctx request.CTX, newPost *model.Post, oldPost *mo
 			Filenames=:Filenames,
 			FileIds=:FileIds,
 			HasReactions=:HasReactions,
-			RemoteId=:RemoteId,
-			Qrid=:Qrid,
-			Qpid=:Qpid
+			RemoteId=:RemoteId
 		WHERE
 			Id=:Id
 		`, newPost); err != nil {
@@ -456,9 +450,7 @@ func (s *SqlPostStore) OverwriteMultiple(rctx request.CTX, posts []*model.Post) 
 					Filenames=:Filenames,
 					FileIds=:FileIds,
 					HasReactions=:HasReactions,
-					RemoteId=:RemoteId,
-					Qrid=:Qrid,
-					Qpid=:Qpid
+					RemoteId=:RemoteId
 				WHERE
 					Id=:Id
 			`, post); err2 != nil {
@@ -596,8 +588,8 @@ func (s *SqlPostStore) getPostWithCollapsedThreads(id, userID string, opts model
 		"COALESCE(Threads.LastReplyAt, 0) as LastReplyAt",
 		"COALESCE(Threads.Participants, '[]') as ThreadParticipants",
 		"ThreadMemberships.Following as IsFollowing",
-		"PostReply.Pid as Qpid",
-		"PostReply.Rid as Qrid",
+		"PostReply.Pid as Pid",
+		"PostReply.Rid as Rid",
 	)
 	var post postWithExtra
 
@@ -624,7 +616,7 @@ func (s *SqlPostStore) getPostWithCollapsedThreads(id, userID string, opts model
 
 	posts := []*model.Post{}
 	query := s.getQueryBuilder().
-		Select("Posts.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid").
+		Select("Posts.*, PostReply.Pid as Pid, PostReply.Rid as Rid").
 		From("Posts").
 		LeftJoin("PostReply ON PostReply.PostId = Posts.Id").
 		Where(sq.Eq{
@@ -735,7 +727,7 @@ func (s *SqlPostStore) Get(ctx context.Context, id string, opts model.GetPostsOp
 		return nil, store.NewErrInvalidInput("Post", "id", id)
 	}
 	var post model.Post
-	postFetchQuery := "SELECT p.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid, (SELECT count(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0) as ReplyCount FROM Posts p LEFT JOIN PostReply ON PostReply.PostId = p.Id WHERE p.Id = ? AND p.DeleteAt = 0"
+	postFetchQuery := "SELECT p.*, PostReply.Pid as Pid, PostReply.Rid as Rid, (SELECT count(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0) as ReplyCount FROM Posts p LEFT JOIN PostReply ON PostReply.PostId = p.Id WHERE p.Id = ? AND p.DeleteAt = 0"
 	err := s.DBXFromContext(ctx).Get(&post, postFetchQuery, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -760,7 +752,7 @@ func (s *SqlPostStore) Get(ctx context.Context, id string, opts model.GetPostsOp
 		var query sq.SelectBuilder
 		if s.DriverName() == model.DatabaseDriverMysql {
 			query = s.getQueryBuilder().
-				Select("p.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid, (SELECT count(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0) as ReplyCount").
+				Select("p.*, PostReply.Pid as Pid, PostReply.Rid as Rid, (SELECT count(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0) as ReplyCount").
 				From("Posts p").
 				LeftJoin("PostReply ON PostReply.PostId = p.Id").
 				Where(sq.And{
@@ -772,7 +764,7 @@ func (s *SqlPostStore) Get(ctx context.Context, id string, opts model.GetPostsOp
 				})
 		} else {
 			query = s.getQueryBuilder().
-				Select("p.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid, replycount.num as ReplyCount").
+				Select("p.*, PostReply.Pid as Pid, PostReply.Rid as Rid, replycount.num as ReplyCount").
 				PrefixExpr(s.getQueryBuilder().
 					Select().
 					Prefix("WITH replycount as (").
@@ -920,23 +912,35 @@ func (s *SqlPostStore) Get(ctx context.Context, id string, opts model.GetPostsOp
 }
 
 func (s *SqlPostStore) GetSingle(rctx request.CTX, id string, inclDeleted bool) (*model.Post, error) {
+	// query := s.getQueryBuilder().
+	// 	Select("p.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid").
+	// 	From("Posts p").
+	// 	LeftJoin("PostReply ON PostReply.PostId = p.Id").
+	// 	Where(sq.Eq{"p.Id": id})
+
+	// replyCountSubQuery := s.getQueryBuilder().
+	// 	Select("COUNT(*)").
+	// 	From("Posts").
+	// 	Where(sq.Expr("Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0"))
+
+	// if !inclDeleted {
+	// 	query = query.Where(sq.Eq{"p.DeleteAt": 0})
+	// }
+	// query = query.Column(sq.Alias(replyCountSubQuery, "ReplyCount"))
+
 	query := s.getQueryBuilder().
-		Select("p.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid").
+		Select("p.*, pr.Pid as Pid, pr.Rid as Rid, t.PostId Tid, rt.PostId Rtid, t.ReplyCount TrCount, rt.ReplyCount RtrCount").
 		From("Posts p").
-		LeftJoin("PostReply ON PostReply.PostId = p.Id").
+		LeftJoin("PostReply pr ON p.Id = pr.PostId").
+		LeftJoin("Threads t ON p.Id = t.PostId").
+		LeftJoin("ReplyThreads rt ON p.Id = rt.PostId").
 		Where(sq.Eq{"p.Id": id})
-
-	replyCountSubQuery := s.getQueryBuilder().
-		Select("COUNT(*)").
-		From("Posts").
-		Where(sq.Expr("Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0"))
-
 	if !inclDeleted {
 		query = query.Where(sq.Eq{"p.DeleteAt": 0})
 	}
-	query = query.Column(sq.Alias(replyCountSubQuery, "ReplyCount"))
 
 	queryString, args, err := query.ToSql()
+	mlog.Debug("GetSingle sql", mlog.String("sql", queryString), mlog.Any("args", args))
 	if err != nil {
 		return nil, errors.Wrap(err, "getsingleincldeleted_tosql")
 	}
@@ -950,6 +954,19 @@ func (s *SqlPostStore) GetSingle(rctx request.CTX, id string, inclDeleted bool) 
 
 		return nil, errors.Wrapf(err, "failed to get Post with id=%s", id)
 	}
+
+	var threadTypes []string
+	if post.RootId != "" || utils.IsNotEmptyStrP(post.Tid) {
+		threadTypes = append(threadTypes, "thread")
+	}
+	if utils.IsNotBlankStrP(post.Rid) {
+		threadTypes = append(threadTypes, "replythread")
+	}
+	post.ThreadTypes = threadTypes
+
+	// 添加调试日志
+	mlog.Debug("GetSingle ThreadTypes set", mlog.String("postId", post.Id), mlog.Any("threadTypes", threadTypes))
+
 	return &post, nil
 }
 
@@ -1590,7 +1607,7 @@ func (s *SqlPostStore) GetPostsAfter(options model.GetPostsOptions, sanitizeOpti
 
 func (s *SqlPostStore) GetPostsByThread(threadId string, since int64) ([]*model.Post, error) {
 	query := s.getQueryBuilder().
-		Select("Posts.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid").
+		Select("Posts.*, PostReply.Pid as Pid, PostReply.Rid as Rid").
 		From("Posts").
 		LeftJoin("PostReply ON PostReply.PostId = Posts.Id").
 		Where(sq.Eq{"RootId": threadId}).
@@ -1635,7 +1652,7 @@ func (s *SqlPostStore) getPostsAround(before bool, options model.GetPostsOptions
 	if s.DriverName() == model.DatabaseDriverMysql {
 		table += " USE INDEX(idx_posts_channel_id_delete_at_create_at)"
 	}
-	columns := []string{"p.*", "PostReply.Pid as Qpid", "PostReply.Rid as Qrid"}
+	columns := []string{"p.*", "PostReply.Pid as Pid", "PostReply.Rid as Rid"}
 	if options.CollapsedThreads {
 		columns = append(columns,
 			"COALESCE(Threads.ReplyCount, 0) as ThreadReplyCount",
@@ -1690,7 +1707,7 @@ func (s *SqlPostStore) getPostsAround(before bool, options model.GetPostsOptions
 				rootIds = append(rootIds, post.RootId)
 			}
 		}
-		rootQuery := s.getQueryBuilder().Select("p.*", "PostReply.Pid as Qpid", "PostReply.Rid as Qrid")
+		rootQuery := s.getQueryBuilder().Select("p.*", "PostReply.Pid as Pid", "PostReply.Rid as Rid")
 		idQuery := sq.Or{
 			sq.Eq{"Id": rootIds},
 		}
@@ -1811,7 +1828,7 @@ func (s *SqlPostStore) GetPostAfterTime(channelId string, time int64, collapsedT
 		conditions = sq.And{conditions, sq.Eq{"RootId": ""}}
 	}
 	query := s.getQueryBuilder().
-		Select("Posts.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid").
+		Select("Posts.*, PostReply.Pid as Pid, PostReply.Rid as Rid").
 		From(table).
 		LeftJoin("PostReply ON PostReply.PostId = Posts.Id").
 		Where(conditions).
@@ -1840,14 +1857,14 @@ func (s *SqlPostStore) getRootPosts(channelId string, offset int, limit int, ski
 	posts := []*model.Post{}
 	var fetchQuery string
 	if skipFetchThreads {
-		fetchQuery = "SELECT p.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid, (SELECT COUNT(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END)) as ReplyCount FROM Posts p LEFT JOIN PostReply ON PostReply.PostId = p.Id WHERE p.ChannelId = ? ORDER BY p.CreateAt DESC LIMIT ? OFFSET ?"
+		fetchQuery = "SELECT p.*, PostReply.Pid as Pid, PostReply.Rid as Rid, (SELECT COUNT(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END)) as ReplyCount FROM Posts p LEFT JOIN PostReply ON PostReply.PostId = p.Id WHERE p.ChannelId = ? ORDER BY p.CreateAt DESC LIMIT ? OFFSET ?"
 		if !includeDeleted {
-			fetchQuery = "SELECT p.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid, (SELECT COUNT(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0) as ReplyCount FROM Posts p LEFT JOIN PostReply ON PostReply.PostId = p.Id WHERE p.ChannelId = ? AND p.DeleteAt = 0 ORDER BY p.CreateAt DESC LIMIT ? OFFSET ?"
+			fetchQuery = "SELECT p.*, PostReply.Pid as Pid, PostReply.Rid as Rid, (SELECT COUNT(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0) as ReplyCount FROM Posts p LEFT JOIN PostReply ON PostReply.PostId = p.Id WHERE p.ChannelId = ? AND p.DeleteAt = 0 ORDER BY p.CreateAt DESC LIMIT ? OFFSET ?"
 		}
 	} else {
-		fetchQuery = "SELECT Posts.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid FROM Posts LEFT JOIN PostReply ON PostReply.PostId = Posts.Id WHERE Posts.ChannelId = ? ORDER BY Posts.CreateAt DESC LIMIT ? OFFSET ?"
+		fetchQuery = "SELECT Posts.*, PostReply.Pid as Pid, PostReply.Rid as Rid FROM Posts LEFT JOIN PostReply ON PostReply.PostId = Posts.Id WHERE Posts.ChannelId = ? ORDER BY Posts.CreateAt DESC LIMIT ? OFFSET ?"
 		if !includeDeleted {
-			fetchQuery = "SELECT Posts.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid FROM Posts LEFT JOIN PostReply ON PostReply.PostId = Posts.Id WHERE Posts.ChannelId = ? AND Posts.DeleteAt = 0 ORDER BY Posts.CreateAt DESC LIMIT ? OFFSET ?"
+			fetchQuery = "SELECT Posts.*, PostReply.Pid as Pid, PostReply.Rid as Rid FROM Posts LEFT JOIN PostReply ON PostReply.PostId = Posts.Id WHERE Posts.ChannelId = ? AND Posts.DeleteAt = 0 ORDER BY Posts.CreateAt DESC LIMIT ? OFFSET ?"
 		}
 	}
 
@@ -1892,7 +1909,7 @@ func (s *SqlPostStore) getParentsPosts(channelId string, offset int, limit int, 
 		return nil, nil
 	}
 
-	cols := []string{"p.*", "PostReply.Pid as Qpid", "PostReply.Rid as Qrid"}
+	cols := []string{"p.*", "PostReply.Pid as Pid", "PostReply.Rid as Rid"}
 	var where sq.Sqlizer
 	where = sq.Eq{"p.Id": roots}
 	if skipFetchThreads {
@@ -1955,7 +1972,7 @@ func (s *SqlPostStore) getParentsPostsPostgreSQL(channelId string, offset int, l
 	}
 
 	err := s.GetReplica().Select(&posts,
-		`SELECT q2.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid`+replyCountQuery+`
+		`SELECT q2.*, PostReply.Pid as Pid, PostReply.Rid as Rid`+replyCountQuery+`
         FROM
             Posts q2
                 LEFT JOIN PostReply ON PostReply.PostId = q2.Id
@@ -2606,7 +2623,7 @@ func (s *SqlPostStore) GetPostsCreatedAt(channelId string, time int64) ([]*model
 }
 
 func (s *SqlPostStore) GetPostsByIds(postIds []string) ([]*model.Post, error) {
-	baseQuery := s.getQueryBuilder().Select("p.*, PostReply.Pid as Qpid, PostReply.Rid as Qrid, (SELECT count(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0) as ReplyCount").
+	baseQuery := s.getQueryBuilder().Select("p.*, PostReply.Pid as Qpid, PostReply.Rid as Rid, (SELECT count(*) FROM Posts WHERE Posts.RootId = (CASE WHEN p.RootId = '' THEN p.Id ELSE p.RootId END) AND Posts.DeleteAt = 0) as ReplyCount").
 		From("Posts p").
 		LeftJoin("PostReply ON PostReply.PostId = p.Id").
 		Where(sq.Eq{"p.Id": postIds}).

@@ -9,7 +9,7 @@ export function buildQueryString(parameters: Record<string, any>): string {
 
     const queryParams = Object.entries(parameters).
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        filter(([_, value]) => value !== undefined).
+        filter(([_, value]) => value != null).
         map(([key, value]) => `${key}=${encodeURIComponent(value)}`).
         join('&');
 

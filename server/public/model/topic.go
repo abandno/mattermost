@@ -27,26 +27,36 @@ type TopicPageOpts struct {
 // TopicReplyOpts 话题回复查询选项
 type PostRepliesReq struct {
 	TopicPageOpts
-	PostId     string            `json:"post_id,omitempty"`
-	ThreadType ThreadType        `json:"thread_type,omitempty"`
-	Pid        string            `json:"pid,omitempty"`
-	Rid        string            `json:"rid,omitempty"`
-	Location   TopicPostLocation `json:"location,omitempty"`
-	RepLvl     int               `json:"replvl,omitempty"`
+	PostId      string            `json:"post_id,omitempty"`
+	ThreadTypes *[]ThreadType     `json:"thread_type,omitempty"`
+	Pid         string            `json:"pid,omitempty"`
+	Rid         string            `json:"rid,omitempty"`
+	Location    TopicPostLocation `json:"location,omitempty"`
+	RepLvl      int               `json:"replvl,omitempty"`
 }
 
 // PostReplyExt 话题回复
 type PostReplyExt struct {
+	// *Post
 	*PostReply
-	Id         string `json:"id"`
+	Level      int    `json:"level"`
 	EditAt     int64  `json:"edit_at"`
 	IsPinned   bool   `json:"is_pinned"`
 	UserId     string `json:"user_id"`
 	ChannelId  string `json:"channel_id"`
 	RootId     string `json:"root_id"`
 	OriginalId string `json:"original_id"`
+	Message    string `json:"message"`
+	// Quote reference fields
+	Pid      *string `json:"pid"` // Quote post ID - the specific post being quoted
+	Rid      *string `json:"rid"` // Quote root ID - the root post of the quoted thread
+	Tid      *string `json:"tid"`
+	RtId     *string `json:"rtid"`
+	TrCount  *int64  `json:"trcount"`
+	RtrCount *int64  `json:"rtrcount"`
 
-	Message string `json:"message"`
+	ThreadTypes []string `json:"thread_types"`
+	PUserId     string   `json:"puser_id"`
 }
 
 // TopicReplyList 话题回复列表

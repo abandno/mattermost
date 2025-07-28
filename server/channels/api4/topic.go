@@ -3,6 +3,7 @@ package api4
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/shared/mlog"
@@ -48,18 +49,18 @@ func getTopicReplies(c *Context, w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		query      = r.URL.Query()
-		postId     = query.Get("post_id")
-		before     = query.Get("before")
-		after      = query.Get("after")
-		perPage    = query.Get("per_page")
-		direction  = query.Get("direction")
-		orderMode  = query.Get("order_mode")
-		pid        = query.Get("pid")
-		rid        = query.Get("rid")
-		location   = query.Get("location")
-		threadType = query.Get("thread_type")
-		replvl     = query.Get("replvl")
+		query       = r.URL.Query()
+		postId      = query.Get("post_id")
+		before      = query.Get("before")
+		after       = query.Get("after")
+		perPage     = query.Get("per_page")
+		direction   = query.Get("direction")
+		orderMode   = query.Get("order_mode")
+		pid         = query.Get("pid")
+		rid         = query.Get("rid")
+		location    = query.Get("location")
+		threadTypes = utils.Map(strings.Split(query.Get("thread_types"), ","), func(s string) model.ThreadType { return model.ThreadType(s) })
+		replvl      = query.Get("replvl")
 	)
 
 	opts := &model.TopicPageOpts{Direction: direction, OrderMode: orderMode}
@@ -76,7 +77,7 @@ func getTopicReplies(c *Context, w http.ResponseWriter, r *http.Request) {
 		Pid:           pid,
 		Rid:           rid,
 		PostId:        postId,
-		ThreadType:    model.ThreadType(threadType),
+		ThreadTypes:   threadTypes,
 		RepLvl:        utils.ToInt(replvl, 1),
 	}
 

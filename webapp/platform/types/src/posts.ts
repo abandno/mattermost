@@ -100,8 +100,9 @@ export type Post = {
     is_following?: boolean;
     exists?: boolean;
     remote_id?: string;
-    qrid?: string;
-    qpid?: string;
+    rid?: string;
+    pid?: string;
+    thread_types?: string[];
 };
 
 export type PostState = 'DELETED';

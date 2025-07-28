@@ -371,7 +371,7 @@ func (a *App) CreatePost(c request.CTX, post *model.Post, channel *model.Channel
 	}
 
 	// Handle quote references if present
-	if post.Qpid != nil && *post.Qpid != "" {
+	if post.Pid != nil && *post.Pid != "" {
 		if err := a.handleQuoteReferences(c, post); err != nil {
 			return nil, err
 		}
@@ -2829,9 +2829,9 @@ func (a *App) SendTestMessage(c request.CTX, userID string) (*model.Post, *model
 // handleQuoteReferences processes quote references for a post
 func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppError {
 	// Validate the quoted post exists and user has permission to read it
-	quotedPost, err := a.GetSinglePost(c, *post.Qpid, false)
+	quotedPost, err := a.GetSinglePost(c, *post.Pid, false)
 	if err != nil {
-		return model.NewAppError("handleQuoteReferences", "api.post.quote.invalid_post.app_error", nil, "quoted_post_id="+*post.Qpid, http.StatusBadRequest).Wrap(err)
+		return model.NewAppError("handleQuoteReferences", "api.post.quote.invalid_post.app_error", nil, "quoted_post_id="+*post.Pid, http.StatusBadRequest).Wrap(err)
 	}
 
 	// Check if user has permission to read the quoted post's channel
@@ -2845,10 +2845,10 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 	}
 
 	// quotedPost 没有 qrid , 说明它自己就是root
-	if quotedPost.Qrid == nil || *quotedPost.Qrid == "" {
-		post.Qrid = &quotedPost.Id
+	if quotedPost.Rid == nil || *quotedPost.Rid == "" {
+		post.Rid= &quotedPost.Id
 	} else {
-		post.Qrid = quotedPost.Qrid
+		post.Rid= quotedPost.Rid
 	}
 
 	// Store quote information in props for backward compatibility
@@ -2877,8 +2877,8 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 	now := model.GetMillis()
 	currentReply := &model.PostReply{
 		PostId:   post.Id,
-		Pid:      *post.Qpid,
-		Rid:      *post.Qrid,
+		Pid:      *post.Pid,
+		Rid:      *post.Rid,
 		CreateAt: now,
 		UpdateAt: now,
 	}
@@ -2887,12 +2887,12 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 		// 处理错误
 	}
 
-	if *post.Qrid == *post.Qpid {
+	if *post.Rid == *post.Pid {
 		// B回复A 情况
 		rootReply := &model.PostReply{
-			PostId:   *post.Qrid,
-			Pid:      *post.Qrid,
-			Rid:      *post.Qrid,
+			PostId:   *post.Rid,
+			Pid:      *post.Rid,
+			Rid:      *post.Rid,
 			CreateAt: now,
 			UpdateAt: now,
 			DRcount:  1,
@@ -2903,7 +2903,7 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 		}
 		// ReplyThreads 新增
 		replyThread := model.ReplyThreads{
-			PostId:       *post.Qrid,
+			PostId:       *post.Rid,
 			ChannelId:    post.ChannelId,
 			ReplyCount:   1,
 			LastReplyAt:  now,
@@ -2916,12 +2916,12 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 	} else {
 		// C回复B 情况
 		// 父postreply行drcount+1
-		if err := a.Srv().Store().PostReply().IncrDRcountByPostId(*post.Qpid); err != nil {
+		if err := a.Srv().Store().PostReply().IncrDRcountByPostId(*post.Pid); err != nil {
 			// 处理错误
 		}
 
 		// ReplyThreads 更新 replyCount
-		if err := a.Srv().Store().ReplyThreads().IncrReplyCountByPostId(*post.Qrid); err != nil {
+		if err := a.Srv().Store().ReplyThreads().IncrReplyCountByPostId(*post.Rid); err != nil {
 			// 处理错误
 		}
 	}
