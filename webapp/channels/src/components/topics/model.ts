@@ -8,10 +8,16 @@ type OriginItem = {
     [key: string]: any;
 }
 
+const MAX_LOAD_COUNT = 1000
+
+/**
+ * 两种模式：
+ * 1. 一次性加载，用 renderMore 
+ * 2. 分页加载，外部加载 update 
+ */
 export class CommentNode {
     public before: AlphaNumN;
     public after: AlphaNumN;
-    public hasMore: boolean;
     public renderCount: number = 0;
     public isLoading: boolean = false;
 
@@ -22,7 +28,10 @@ export class CommentNode {
         public readonly role: CommentNodeRole, // 当期节点的角色  什么类型的树, topic的直接回复树 | topic 的评论树
         public readonly perPage: number,
         public readonly data: OriginItem, // 当前节点原数据
-        public readonly children: CommentNode[],
+        public children: CommentNode[],
+        // public readonly loadMoreFn: (more: number) => OriginItem[],
+        public readonly offsetExtracter: (data: any) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
+        public hasMore: boolean = false, // 后端设置，前端不可知
     ) {
         this.id = id;
         this.pid = pid;
@@ -33,8 +42,9 @@ export class CommentNode {
         this.before = null;
         this.after = null;
         this.perPage = perPage;
-        this.hasMore = true;
+        this.hasMore = hasMore;
         this.renderCount = this.perPage;
+        // this.loadMoreFn = loadMoreFn;
     }
 
     public hasChildren() {
@@ -44,15 +54,21 @@ export class CommentNode {
     public childrenSize() {
         return this.children?.length ?? 0;
     }
-    
+
     // 检查是否还有更多数据可以加载
     public canRenderMore() {
-        return this.renderCount < this.childrenSize();
+        const cs = this.childrenSize();
+        return cs == 0 ? this.hasMore : this.renderCount < cs;
     }
 
     // 用于一次性加载场景，前端实现加载更多，实际是渲染更多
     public renderMore(more: number = this.perPage) {
+        if (this.childrenSize() < this.renderCount + more && this.hasMore) {
+            // this.update(await loadMoreFn(more))
+            return false;
+        }
         this.renderCount = Math.min(this.renderCount + more, this.childrenSize());
+        return true;
     }
 
     // 原始children上遍历渲染
@@ -63,59 +79,37 @@ export class CommentNode {
         }
         return renderNodes;
     }
-}
 
-/**
- * 评论树
- * 
- * 1. 维护当前分页信息: 所在位置,方向,页大小
- * 2. 评论树类型, 谁的评论树
- * 3. 后代节点翻页后, 要能快速获取该节点追加列表
- */
-export class CommentTree extends CommentNode {
-    private nodeMap: Map<AlphaNum, CommentNode> = new Map();
 
-    constructor(
-        public readonly rootId: string,
-        public readonly role: CommentNodeRole,
-        public readonly perPage: number,
-        public readonly offsetExtracter: (data: any) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
-    ) {
-        super(rootId, null, null, role, perPage, { id: rootId, pid: null }, []);
+    update(data: OriginItem[], hasMore = false, replace = false) {
+        this.handleData(data, hasMore, replace);
     }
 
-    // // 首次加载根树
-    // init(data: OriginItem[]) {
-    //     // data -> Node
-    //     this.handleData(this.id, data);
-    // }
-
-    update(nodeId: AlphaNum, data: OriginItem[]) {
-        this.handleData(nodeId, data);
-    }
-
-    copy() {
-        return shallowCopyInstance(this);
-    }
-
-    private handleData(nodeId: AlphaNum, data: OriginItem[]) {
+    private handleData(data: OriginItem[], hasMore = false, replace = false) {
         if (!data) {
             return;
         }
-        const node = nodeId == this.id ? this : this.nodeMap.get(nodeId);
+        const node = this;
         if (!node) {
             return;
         }
         const childRole: CommentNodeRole = this.getChildNodeRole();
-        data.forEach(item => {
-            const n = new CommentNode(item.id, item.pid, item.rid, childRole, this.perPage, item, []);
-            this.nodeMap.set(item.id, n);
-            node.children.push(n);
+        const childNodes = data.map(item => {
+            const hasReply = item.drcount > 0; // 根据是否有直接回复判断评论有没有回复，直接回复都没有，必然无回复
+            const n = new CommentNode(item.id, item.pid, item.rid, childRole, this.perPage, item, [], this.offsetExtracter, hasReply);
+            return n;
         });
+
+        if (replace) {
+            node.children = childNodes;
+        } else {
+            node.children.push(...childNodes);
+        }
+
         // 更新当前页位置
         node.before = this.offsetExtracter(data[0]);
         node.after = this.offsetExtracter(data[data.length - 1]);
-        node.hasMore = data.length >= this.perPage;
+        node.hasMore = hasMore;
     }
 
     private getChildNodeRole() {
@@ -136,4 +130,59 @@ export class CommentTree extends CommentNode {
         }
         return childRole;
     }
+
+    copy() {
+        return shallowCopyInstance(this);
+    }
+}
+
+/**
+ * 评论树
+ * 
+ * 1. 维护当前分页信息: 所在位置,方向,页大小
+ * 2. 评论树类型, 谁的评论树
+ * 3. 后代节点翻页后, 要能快速获取该节点追加列表
+ */
+export class CommentTree extends CommentNode {
+    // private nodeMap: Map<AlphaNum, CommentNode> = new Map();
+
+    constructor(
+        public readonly rootId: string,
+        public readonly role: CommentNodeRole,
+        public readonly perPage: number,
+        public readonly offsetExtracter: (data: any) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
+    ) {
+        super(rootId, null, null, role, perPage, { id: rootId, pid: null }, [], offsetExtracter);
+    }
+
+    // // 首次加载根树
+    // init(data: OriginItem[]) {
+    //     // data -> Node
+    //     this.handleData(this.id, data);
+    // }
+
+    // update(nodeId: AlphaNum, data: OriginItem[]) {
+    //     this.handleData(nodeId, data);
+    // }
+
+    // private handleData(nodeId: AlphaNum, data: OriginItem[]) {
+    //     if (!data) {
+    //         return;
+    //     }
+    //     const node = nodeId == this.id ? this : this.nodeMap.get(nodeId);
+    //     if (!node) {
+    //         return;
+    //     }
+    //     const childRole: CommentNodeRole = this.getChildNodeRole();
+    //     data.forEach(item => {
+    //         const n = new CommentNode(item.id, item.pid, item.rid, childRole, this.perPage, item, []);
+    //         this.nodeMap.set(item.id, n);
+    //         node.children.push(n);
+    //     });
+    //     // 更新当前页位置
+    //     node.before = this.offsetExtracter(data[0]);
+    //     node.after = this.offsetExtracter(data[data.length - 1]);
+    //     node.hasMore = data.length >= this.perPage && data.length < MAX_LOAD_COUNT; // 一次性最大加载场景会有 MAX_LOAD_COUNT，此时强行限制不能 load more
+    // }
+
 }

@@ -60,8 +60,8 @@ export function submitPost(
             create_at: time,
             metadata: {...draft.metadata},
             props: { ...draft.props },
-            qrid: draft.qrid,
-            qpid: draft.qpid,
+            rid: draft.rid,
+            pid: draft.pid,
         } as unknown as Post;
         // console.log('==submitPost post buid', post)
 

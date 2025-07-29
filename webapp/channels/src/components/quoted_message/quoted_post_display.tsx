@@ -21,13 +21,13 @@ interface Props {
 
 export default function QuotedPostDisplay({ post, location, currentUserId }: Props) {
     // 检查消息是否有引用
-    if (!post.qrid && !post.qpid) {
+    if (!post.rid && !post.pid) {
         return null;
     }
 
     // 获取被引用的消息
     const quotedPost = useSelector((state: GlobalState) => {
-        const postId = post.qpid || post.qrid;
+        const postId = post.pid || post.rid;
         return postId ? getPost(state, postId) : null;
     });
 

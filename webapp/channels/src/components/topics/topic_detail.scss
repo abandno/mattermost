@@ -138,7 +138,7 @@ html .row.main,
         }
     }
 
-    .topic-direct-reply {
+    .reply-list {
         background: var(--center-channel-color-02);
         border-top: 1px solid var(--center-channel-color-08);
         padding: 20px 28px;
@@ -398,7 +398,7 @@ html .row.main,
             }
         }
         
-        .topic-direct-reply {
+        .reply-list {
             padding: 16px 20px;
             
             &__comments {
@@ -457,7 +457,7 @@ html .row.main,
             }
         }
         
-        .topic-direct-reply,
+        .reply-list,
         .topic-detail__comments .comments-list {
             padding: 12px 16px;
         }

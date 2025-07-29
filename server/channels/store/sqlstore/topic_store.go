@@ -16,6 +16,8 @@ type SqlTopicStore struct {
 	*SqlStore
 }
 
+const REPLY_MAX_LOAD_COUNT = 1000
+
 func newSqlTopicStore(sqlStore *SqlStore) store.TopicStore {
 	return &SqlTopicStore{sqlStore}
 }
@@ -330,11 +332,8 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadComment(req *model.PostRepliesReq)
 		return &model.TopicReplyList{Replies: []*model.PostReplyExt{}}, err
 	}
 
-	var hasMore = false
-	if len(replies) >= int(req.Limit) {
-		hasMore = true
-	}
-	return &model.TopicReplyList{Replies: replies, HasMore: hasMore}, nil
+	// 不管是否达到 REPLY_MAX_LOAD_COUNT，都不让加载更多了
+	return &model.TopicReplyList{Replies: replies, HasMore: false}, nil
 }
 
 func (s *SqlTopicStore) fillPosts4FirstPage(req *model.PostRepliesReq, replies []*model.PostReplyExt) error {
@@ -408,7 +407,6 @@ func (s *SqlTopicStore) fillPosts4FirstPage(req *model.PostRepliesReq, replies [
 
 // 递归查询所有后代回复链
 func (s *SqlTopicStore) queryDescendantReply(req *model.PostRepliesReq) ([]*model.PostReplyExt, error) {
-	const maxlimit = 1000
 	const maxrec = 6
 	sql, args, err := sq.
 		Select("*").
@@ -426,7 +424,7 @@ func (s *SqlTopicStore) queryDescendantReply(req *model.PostRepliesReq) ([]*mode
     `, req.PostId, maxrec).
 		From("descendants").
 		OrderBy("updateat ASC").
-		Limit(uint64(maxlimit)).
+		Limit(uint64(REPLY_MAX_LOAD_COUNT)).
 		ToSql()
 	mlog.Debug("SqlTopicStore.GetReplies4ReplyThreadComment", mlog.String("sql", sql), mlog.Any("args", args))
 	if err != nil {

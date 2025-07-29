@@ -21,6 +21,7 @@ import type { GlobalState } from 'types/store';
 import './topic_detail.scss';
 import { Post } from '@mattermost/types/posts';
 import Markdown from 'components/markdown';
+import ReplyList from './reply_list';
 
 const PER_PAGE = 2;
 
@@ -36,7 +37,10 @@ const TopicDetail = () => {
     const [error, setError] = useState<string | null>(null);
     const [rollPageOpts, setRollPageOpts] = useState<[number, number, string]>([0, 0, 'first'])
     const [topicDirectReplyTree, setTopicDirectReplyTree] = useState<CommentTree>(new CommentTree(topicId, 'topic-reply', PER_PAGE, (data: any) => data.updateat));
-    const [topicCommentTree, setTopicCommentTree] = useState<CommentTree>(new CommentTree(topicId, 'topic', PER_PAGE, (data: any) => data.updateat));
+    const [topicCommentTree, setTopicCommentTree] = useState<CommentTree>(new CommentTree(
+        topicId, 'topic', PER_PAGE,
+        (data: any) => data.updateat
+    ));
 
     useEffect(() => {
         // 设置左侧边栏选中状态为话题页
@@ -74,7 +78,7 @@ const TopicDetail = () => {
     }, [dispatch, currentTeamId, currentUserId, topicId]);
 
     // 通用方法: 获取回复列表, 更新回复树
-    const fetchReplies = async (commentNode: CommentNode, location: string, threadTypes: string[] = [], replvl: number) => {
+    const fetchReplies = async (commentNode: CommentNode, location: string, threadTypes: string[] = [], replvl: number = 1, direction: string = 'next') => {
         try {
             const reps = await Client4.getTopicReplies(
                 currentUserId,
@@ -88,8 +92,8 @@ const TopicDetail = () => {
                     replvl,
                     before: commentNode.before,
                     after: commentNode.after,
-                    perPage: 10,
-                    direction: 'next',
+                    perPage: commentNode.perPage,
+                    direction,
                     orderMode: 'latest',
                     postRole: commentNode.role == 'comment' ? 'comment' : 'topic',
                 });
@@ -101,50 +105,67 @@ const TopicDetail = () => {
         }
     }
 
-    // 话题是引用串, 则获取话题的直接回复
+    // 话题是引用串, 获取该话题的后代回复，放到话题的回复列表区域
     useEffect(() => {
         if (topic && topic.rid) {
             fetchReplies(topicDirectReplyTree, 'topic', topic.thread_types, 2).then(reps => {
-                topicDirectReplyTree.update(topicId, reps?.replies)
+                topicDirectReplyTree.update(reps?.replies, reps?.has_more)
                 setTopicDirectReplyTree(topicDirectReplyTree.copy()); // 引用改变, 重渲染;
             })
         }
     }, [topic]);
 
-    // 话题的评论树
-    useEffect(() => {
+    const fetchComments = (direction: string) => {
         if (!topic) {
             return;
         }
-        fetchReplies(topicCommentTree, 'topic', topic.thread_types, 1).then(reps => {
-            topicCommentTree.update(topicId, reps?.replies)
+        fetchReplies(topicCommentTree, 'topic', topic.thread_types, 1, direction).then(reps => {
+            topicCommentTree.update(reps?.replies, reps?.has_more, true)
             setTopicCommentTree(topicCommentTree.copy()); // 引用改变, 重渲染;
         })
+    }
+
+    // 话题的评论树
+    useEffect(() => {
+        fetchComments('first')
     }, [topic]);
 
     // 话题回复分页变化, 加载更多, 追加方式
-    const handleReplyPageChange = (commentNode: CommentNode, location: string, threadTypes: string[], replvl: number) => {
-        fetchReplies(commentNode, location, threadTypes, replvl);
+    const handleCommentPageChange = (direction: string) => {
+        fetchComments(direction)
     }
 
-    // 加载更多话题直接回复
-    const handleLoadMoreReplies = async (node, tree) => {
+    // 回复列表区展开更多回复
+    const handleLoadMoreReplies = async (node: CommentNode, replyRegionType: string, rerenderTree: () => void) => {
         if (node.isLoading || !node.canRenderMore()) {
             return;
         }
 
         node.isLoading = true;
         try {
-            node.renderMore()
+            let ok = node.renderMore(node.perPage)
+            if (!ok) {
+                // 不够render, 加载
+                let resp
+                if (replyRegionType == 'topic-reply') {
+                    // 话题的直接回复区
+                    resp = await fetchReplies(node, 'topic', topic?.thread_types, 2)
+                } else {
+                    // 评论的回复区  只是 replythread
+                    resp = await fetchReplies(node, 'comment', ['replythread'])
+                }
+                node.update(resp.replies, resp.has_more)
+                node.renderMore(node.perPage)
+            }
         } finally {
             node.isLoading = false
-            setTopicDirectReplyTree(tree.copy());
+            rerenderTree(); // 引用改变, 重渲染;
         }
     }
 
-    const handleFoldReplies = (node, tree) => {
+    const handleFoldReplies = (node: CommentNode, rerenderTree: () => void) => {
         node.renderCount = 0;
-        setTopicDirectReplyTree(tree.copy());
+        rerenderTree();
     }
 
     // 使用 markdown 转纯文本
@@ -201,7 +222,12 @@ const TopicDetail = () => {
                             </div>
                         </div>
                     )}
-                    {topicDirectReplyTree.hasChildren() && (
+                    <ReplyList
+                        node={topicDirectReplyTree}
+                        onMore={(node) => handleLoadMoreReplies(node, 'topic-reply', () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
+                        onFold={(node) => handleFoldReplies(node, () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
+                    />
+                    {/* {topicDirectReplyTree.hasChildren() && (
                         <div className='topic-direct-reply'>
                             <div className='topic-direct-reply__comments'>
                                 {topicDirectReplyTree.renderChildren((comment) => (
@@ -230,7 +256,7 @@ const TopicDetail = () => {
                                         {topicDirectReplyTree.canRenderMore() &&
                                             <span
                                                 className='load-more-hint clickable'
-                                                onClick={() => handleLoadMoreReplies(topicDirectReplyTree, topicDirectReplyTree)}
+                                                onClick={() => handleLoadMoreReplies(topicDirectReplyTree, 'topic-reply', () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
                                             >
                                                 {topicDirectReplyTree.renderCount >= topicDirectReplyTree.perPage ? '展开更多' : '展开 ' + topicDirectReplyTree.childrenSize() + ' 条回复'}
                                             </span>
@@ -238,7 +264,7 @@ const TopicDetail = () => {
                                         {topicDirectReplyTree.renderCount > 0 && (
                                             <span
                                                 className='load-more-hint clickable'
-                                                onClick={() => handleFoldReplies(topicDirectReplyTree, topicDirectReplyTree)}
+                                                onClick={() => handleFoldReplies(topicDirectReplyTree, () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
                                             >
                                                 收起
                                             </span>
@@ -247,7 +273,7 @@ const TopicDetail = () => {
                                 )}
                             </div>
                         </div>
-                    )}
+                    )} */}
                 </div>
                 <div className='topic-detail__comments'>
                     <h3>评论区 ({topicCommentTree.childrenSize()})</h3>
@@ -268,7 +294,12 @@ const TopicDetail = () => {
                                             {formatTime(comment.data.create_at)}
                                         </span>
                                     </div>
-                                    {comment.hasChildren() && (
+                                    <ReplyList
+                                        node={comment}
+                                        onMore={(node) => handleLoadMoreReplies(node, 'comment-reply', () => setTopicCommentTree(topicCommentTree.copy()))}
+                                        onFold={(node) => handleFoldReplies(node, topicCommentTree)}
+                                    />
+                                    {/* {comment.canRenderMore() && (
                                         <div className='topic-direct-reply'>
                                             <div className='topic-direct-reply__comments'>
                                                 {comment.renderChildren((reply) => (
@@ -297,7 +328,7 @@ const TopicDetail = () => {
                                                         {comment.canRenderMore() &&
                                                             <span
                                                                 className='load-more-hint clickable'
-                                                                onClick={() => handleLoadMoreReplies(comment, topicCommentTree)}
+                                                                onClick={() => handleLoadMoreReplies(comment, 'comment-reply', () => setTopicCommentTree(topicCommentTree.copy()))}
                                                             >
                                                                 {comment.renderCount >= comment.perPage ? '展开更多' : '展开 ' + comment.childrenSize() + ' 条回复'}
                                                             </span>
@@ -305,7 +336,7 @@ const TopicDetail = () => {
                                                         {comment.renderCount > 0 && (
                                                             <span
                                                                 className='load-more-hint clickable'
-                                                                onClick={() => handleFoldReplies(comment, topicCommentTree)}
+                                                                onClick={() => handleFoldReplies(comment, () => setTopicCommentTree(topicCommentTree.copy()))}
                                                             >
                                                                 收起
                                                             </span>
@@ -314,10 +345,15 @@ const TopicDetail = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    )}
+                                    )} */}
                                 </div>
                             ))
                         )}
+                    </div>
+                    <div className='comment-pagination'>
+                        <button className='comment-pagination__button' onClick={() => handleCommentPageChange('first')}>首页</button>
+                        <button className='comment-pagination__button' onClick={() => handleCommentPageChange('prev')}>上一页</button>
+                        <button className='comment-pagination__button' onClick={() => handleCommentPageChange('next')}>下一页</button>
                     </div>
                 </div>
             </div>

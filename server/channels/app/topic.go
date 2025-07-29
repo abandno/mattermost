@@ -5,6 +5,7 @@ import (
 	"runtime"
 
 	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/shared/mlog"
 	"github.com/mattermost/mattermost/server/public/shared/request"
 	"github.com/thoas/go-funk"
 )
@@ -39,18 +40,22 @@ func (a *App) GetTopicReplies(c request.CTX, req *model.PostRepliesReq) (result 
 	switch {
 	// 1. thread + topic + lvl1
 	case req.ThreadTypes != nil && funk.Contains(*req.ThreadTypes, model.ThreadEnum) && req.Location == model.TopicEnum && req.RepLvl == 1:
+		mlog.Debug("thread + topic + lvl1")
 		result, err = a.Srv().Store().Topic().GetReplies4ThreadTopicLvl1(req)
 
 	// 2. thread + topic + lvl2
 	case req.ThreadTypes != nil && funk.Contains(*req.ThreadTypes, model.ThreadEnum) && req.Location == model.TopicEnum && req.RepLvl == 2:
+		mlog.Debug("thread + topic + lvl2")
 		result, err = a.Srv().Store().Topic().GetReplies4ThreadTopicLvl2(req)
 
 	// 3. replythread + topic
 	case req.ThreadTypes != nil && funk.Contains(*req.ThreadTypes, model.ReplyThreadEnum) && req.Location == model.TopicEnum:
+		mlog.Debug("replythread + topic")
 		result, err = a.Srv().Store().Topic().GetReplies4ReplyThreadTopic(req)
 
 	// 4. replythread + comment
 	case req.ThreadTypes != nil && funk.Contains(*req.ThreadTypes, model.ReplyThreadEnum) && req.Location == model.CommentEnum:
+		mlog.Debug("replythread + comment")
 		result, err = a.Srv().Store().Topic().GetReplies4ReplyThreadComment(req)
 
 	default:
