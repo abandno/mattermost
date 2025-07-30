@@ -22,6 +22,7 @@ export class CommentNode {
     public isLoading: boolean = false;
 
     constructor(
+        public readonly _name: NU<string>,
         public readonly id: string,
         public readonly pid: StringN,
         public readonly rid: StringN,
@@ -33,6 +34,7 @@ export class CommentNode {
         public readonly offsetExtracter: (data: NU<OriginItem>) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
         public hasMore: boolean = false, // 后端设置，前端不可知
     ) {
+        this._name = _name;
         this.id = id;
         this.pid = pid;
         this.rid = rid;
@@ -43,7 +45,7 @@ export class CommentNode {
         this.after = null;
         this.perPage = perPage;
         this.hasMore = hasMore;
-        this.renderCount = this.perPage;
+        // this.renderCount = this.perPage;
         // this.loadMoreFn = loadMoreFn;
     }
 
@@ -96,7 +98,7 @@ export class CommentNode {
         const childRole: CommentNodeRole = this.getChildNodeRole();
         const childNodes = data.map(item => {
             const hasReply = item.drcount > 0; // 根据是否有直接回复判断评论有没有回复，直接回复都没有，必然无回复
-            const n = new CommentNode(item.id, item.pid, item.rid, childRole, this.perPage, item, [], this.offsetExtracter, hasReply);
+            const n = new CommentNode(node._name + '.' + item.post_id, item.post_id, item.pid, item.rid, childRole, this.perPage, item, [], this.offsetExtracter, hasReply);
             return n;
         });
 
@@ -155,12 +157,13 @@ export class CommentTree extends CommentNode {
     // private nodeMap: Map<AlphaNum, CommentNode> = new Map();
 
     constructor(
+        public readonly _name: NU<string>,
         public readonly rootId: string,
         public readonly role: CommentNodeRole,
         public readonly perPage: number,
         public readonly offsetExtracter: (data: NU<OriginItem>) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
     ) {
-        super(rootId, null, null, role, perPage, { id: rootId, pid: null }, [], offsetExtracter);
+        super(_name, rootId, null, null, role, perPage, { id: rootId, pid: null }, [], offsetExtracter);
     }
 
     // // 首次加载根树

@@ -16,7 +16,6 @@ import LoadingScreen from 'components/loading_screen';
 import { useMd2PlainText } from 'hooks/useMd2PlainText';
 import { formatTime } from 'utils/datetime';
 import { CommentTree, CommentNode } from './model';
-import type { GlobalState } from 'types/store';
 
 import './topic_detail.scss';
 import { Post } from '@mattermost/types/posts';
@@ -36,9 +35,9 @@ const TopicDetail = () => {
     const [quotedPost, setQuotedPost] = useState<Post | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [rollPageOpts, setRollPageOpts] = useState<[number, number, string]>([0, 0, 'first'])
-    const [topicDirectReplyTree, setTopicDirectReplyTree] = useState<CommentTree>(new CommentTree(topicId, 'topic-reply', PER_PAGE, (data: any) => data.updateat));
+    const [topicDirectReplyTree, setTopicDirectReplyTree] = useState<CommentTree>(new CommentTree('topicDirectReplyTree', topicId, 'topic-reply', PER_PAGE, (data: any) => data.updateat));
     const [topicCommentTree, setTopicCommentTree] = useState<CommentTree>(new CommentTree(
-        topicId, 'topic', PER_PAGE,
+        'topicCommentTree', topicId, 'topic', PER_PAGE,
         // offsetExtracter
         (data) => data?.update_at
     ));
@@ -137,14 +136,14 @@ const TopicDetail = () => {
     }
 
     // 回复列表区展开更多回复
-    const handleLoadMoreReplies = async (node: CommentNode, replyRegionType: string, rerenderTree: () => void) => {
+    const handleLoadMoreReplies = async (node: CommentNode, replyRegionType: string, rerenderTree: () => void, more?: number) => {
         if (node.isLoading || !node.canRenderMore()) {
             return;
         }
-
+        more = more || node.perPage;
         node.isLoading = true;
         try {
-            let ok = node.renderMore(node.perPage)
+            let ok = node.renderMore(more)
             if (!ok) {
                 // 不够render, 加载  --第一次
                 let resp
@@ -156,7 +155,7 @@ const TopicDetail = () => {
                     resp = await fetchReplies(node, 'comment', ['replythread'])
                 }
                 node.update(resp.replies, resp.has_more)
-                node.renderMore(node.perPage)
+                node.renderMore(more)
             } else if (node.renderCount > node.perPage) {
                 // TODO 后面页的消息等字段是懒加载模式的
                 
@@ -228,7 +227,7 @@ const TopicDetail = () => {
                     )}
                     <ReplyList
                         node={topicDirectReplyTree}
-                        onMore={(node) => handleLoadMoreReplies(node, 'topic-reply', () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
+                        onMore={(node, more) => handleLoadMoreReplies(node, 'topic-reply', () => setTopicDirectReplyTree(topicDirectReplyTree.copy()), more)}
                         onFold={(node) => handleFoldReplies(node, () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
                     />
                     {/* {topicDirectReplyTree.hasChildren() && (
@@ -301,7 +300,7 @@ const TopicDetail = () => {
                                     <ReplyList
                                         node={comment}
                                         onMore={(node) => handleLoadMoreReplies(node, 'comment-reply', () => setTopicCommentTree(topicCommentTree.copy()))}
-                                        onFold={(node) => handleFoldReplies(node, topicCommentTree)}
+                                        onFold={(node) => handleFoldReplies(node, () => setTopicCommentTree(topicCommentTree.copy()))}
                                     />
                                     {/* {comment.canRenderMore() && (
                                         <div className='topic-direct-reply'>

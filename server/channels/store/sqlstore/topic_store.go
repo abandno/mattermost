@@ -218,7 +218,7 @@ func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*
 
 func (s *SqlTopicStore) getReplies4ThreadTopicLvl2_0(req *model.PostRepliesReq) ([]*model.PostReplyExt, error) {
 	query := s.getQueryBuilder().
-		Select("p.id PostId, p.message Message, p.userid UserId, p.createat CreateAt, p.updateat UpdateAt, pr.Pid, pr.Rid, pr.DRcount").
+		Select("p.id PostId, p.message Message, p.userid UserId, p.createat CreateAt, p.updateat UpdateAt, pr.Pid, pr.Rid, COALESCE(pr.DRcount, 0) DRcount").
 		From("Posts p").
 		LeftJoin("PostReply pr ON pr.PostId = p.Id").
 		Where(sq.Eq{"RootId": req.PostId}).
@@ -229,18 +229,18 @@ func (s *SqlTopicStore) getReplies4ThreadTopicLvl2_0(req *model.PostRepliesReq) 
 	switch req.Direction {
 	case "next":
 		if req.After > 0 {
-			query = query.Where(sq.Lt{"updateat": req.After})
+			query = query.Where(sq.Lt{"p.updateat": req.After})
 		}
-		query = query.OrderBy("updateat DESC")
+		query = query.OrderBy("p.updateat DESC")
 	case "prev":
 		if req.Before > 0 {
-			query = query.Where(sq.Gt{"updateat": req.Before})
+			query = query.Where(sq.Gt{"p.updateat": req.Before})
 		}
-		query = query.OrderBy("updateat ASC")
+		query = query.OrderBy("p.updateat ASC")
 	case "last":
-		query = query.OrderBy("updateat ASC")
+		query = query.OrderBy("p.updateat ASC")
 	case "first":
-		query = query.OrderBy("updateat DESC")
+		query = query.OrderBy("p.updateat DESC")
 	default:
 		// 暂仅支持向后加载更多
 		return nil, errors.New("invalid direction")
