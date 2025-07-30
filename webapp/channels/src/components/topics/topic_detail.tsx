@@ -39,7 +39,8 @@ const TopicDetail = () => {
     const [topicDirectReplyTree, setTopicDirectReplyTree] = useState<CommentTree>(new CommentTree(topicId, 'topic-reply', PER_PAGE, (data: any) => data.updateat));
     const [topicCommentTree, setTopicCommentTree] = useState<CommentTree>(new CommentTree(
         topicId, 'topic', PER_PAGE,
-        (data: any) => data.updateat
+        // offsetExtracter
+        (data) => data?.update_at
     ));
 
     useEffect(() => {
@@ -145,7 +146,7 @@ const TopicDetail = () => {
         try {
             let ok = node.renderMore(node.perPage)
             if (!ok) {
-                // 不够render, 加载
+                // 不够render, 加载  --第一次
                 let resp
                 if (replyRegionType == 'topic-reply') {
                     // 话题的直接回复区
@@ -156,6 +157,9 @@ const TopicDetail = () => {
                 }
                 node.update(resp.replies, resp.has_more)
                 node.renderMore(node.perPage)
+            } else if (node.renderCount > node.perPage) {
+                // TODO 后面页的消息等字段是懒加载模式的
+                
             }
         } finally {
             node.isLoading = false

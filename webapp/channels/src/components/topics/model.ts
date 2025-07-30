@@ -1,4 +1,4 @@
-import { AlphaNum, AlphaNumN, StringN } from "@mattermost/types/general";
+import { AlphaNum, AlphaNumN, N, NU, StringN } from "@mattermost/types/general";
 import { shallowCopyInstance } from "mattermost-webapp/src/utils/utils";
 
 type CommentNodeRole = 'topic' | 'comment' | 'reply' | 'topic-reply';
@@ -30,7 +30,7 @@ export class CommentNode {
         public readonly data: OriginItem, // 当前节点原数据
         public children: CommentNode[],
         // public readonly loadMoreFn: (more: number) => OriginItem[],
-        public readonly offsetExtracter: (data: any) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
+        public readonly offsetExtracter: (data: NU<OriginItem>) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
         public hasMore: boolean = false, // 后端设置，前端不可知
     ) {
         this.id = id;
@@ -100,16 +100,24 @@ export class CommentNode {
             return n;
         });
 
+        let dataChange = false;
         if (replace) {
-            node.children = childNodes;
+            // 避免有数据时给用用户展示空页, 发生在上一页或下一页到头了
+            if (childNodes.length > 0) {
+                node.children = childNodes;
+                dataChange = true;
+            }
         } else {
             node.children.push(...childNodes);
+            dataChange = true;
         }
 
         // 更新当前页位置
-        node.before = this.offsetExtracter(data[0]);
-        node.after = this.offsetExtracter(data[data.length - 1]);
-        node.hasMore = hasMore;
+        if (dataChange) {
+            node.before = this.offsetExtracter(data[0]);
+            node.after = this.offsetExtracter(data[data.length - 1]);
+            node.hasMore = hasMore;
+        }
     }
 
     private getChildNodeRole() {
@@ -150,7 +158,7 @@ export class CommentTree extends CommentNode {
         public readonly rootId: string,
         public readonly role: CommentNodeRole,
         public readonly perPage: number,
-        public readonly offsetExtracter: (data: any) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
+        public readonly offsetExtracter: (data: NU<OriginItem>) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
     ) {
         super(rootId, null, null, role, perPage, { id: rootId, pid: null }, [], offsetExtracter);
     }

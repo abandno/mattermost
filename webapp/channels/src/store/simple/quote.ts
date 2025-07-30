@@ -26,11 +26,6 @@ function quotedPostIdReducer(state = initialState, action: MMAction) {
     return state;
 }
 
-export const reducers = combineReducers({
-    // state.views.quote.quotedPostId.[location]
-    quotedPostId: quotedPostIdReducer,
-});
-
 
 export const quotedPostAction = (
     post: Post | null,
@@ -39,7 +34,7 @@ export const quotedPostAction = (
     // console.log('==actions selectQuotedPost', location)
     return {
         type: ActionTypes.SELECT_QUOTE_POST,
-        postId: post && (post.root_id || post.id),
+        postId: post && post.id,
         channelId: post?.channel_id,
         previousState,
         timestamp: Date.now(),
@@ -75,3 +70,8 @@ export const quotedPostSelector = (state: GlobalState, location: string) => {
 //     quotedPostIdSelector,
 //     quotedPostSelector
 // };
+
+export default combineReducers({
+    // state.views.quote.quotedPostId.[location]
+    quotedPostId: quotedPostIdReducer,
+});

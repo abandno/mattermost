@@ -348,3 +348,11 @@ func Map[T, R any](list []T, mapFn func(T) R) *[]R {
 	}
 	return &result
 }
+
+// 三元表达式
+func If[T any](condition bool, trueValue T, falseValue T) T {
+	if condition {
+		return trueValue
+	}
+	return falseValue
+}

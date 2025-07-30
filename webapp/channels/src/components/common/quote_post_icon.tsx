@@ -11,12 +11,11 @@ type Props = {
     searchStyle?: string;
     quoteCount?: number;
     postId?: string;
-    extraClass: string;
+    extraClass?: string;
 }
 
 const QuotePostIcon = ({
     location = 'CENTER',
-    searchStyle = '',
     quoteCount = 0,
     extraClass = '',
     handleQuoteClick,

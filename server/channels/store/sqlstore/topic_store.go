@@ -198,28 +198,49 @@ func getLatestReplies(s *SqlTopicStore, ids []string, mode model.ThreadType) map
 
 // thread + topic + lvl1（评论列表，讨论串里找）
 func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*model.TopicReplyList, error) {
+	replies, err := s.getReplies4ThreadTopicLvl2_0(req)
+
+	// // 上一页或下一页但空页, 则可能是超出范围, 降级分别采用首页和尾页降级返回, 避免有数据时返回空页 (DEL: 尾页不够, 降级尾页还需要返回相同数量才好, 否则容易懵)
+	// if len(replies) == 0 && (req.Direction == "next" || req.Direction == "prev") {
+	// 	var direction2 = utils.If(req.Direction == "next", "last", "first")
+	// 	mlog.Debug(fmt.Sprintf("getReplies4ThreadTopicLvl2_0 empty: will fallback to first/last, %s -> %s", req.Direction, direction2))
+	// 	req.Direction = direction2
+	// 	replies, err = s.getReplies4ThreadTopicLvl2_0(req)
+	// }
+
+	result := &model.TopicReplyList{
+		Replies: replies,
+		HasMore: len(replies) >= int(req.Limit), // 当前页满了, 可能还有
+	}
+
+	return result, err
+}
+
+func (s *SqlTopicStore) getReplies4ThreadTopicLvl2_0(req *model.PostRepliesReq) ([]*model.PostReplyExt, error) {
 	query := s.getQueryBuilder().
-		Select("p.id PostId, p.message Message, p.userid UserId, p.createat CreateAt, p.updateat UpdateAt").
+		Select("p.id PostId, p.message Message, p.userid UserId, p.createat CreateAt, p.updateat UpdateAt, pr.Pid, pr.Rid, pr.DRcount").
 		From("Posts p").
+		LeftJoin("PostReply pr ON pr.PostId = p.Id").
 		Where(sq.Eq{"RootId": req.PostId}).
-		Where(sq.Eq{"DeleteAt": 0}).
+		Where(sq.Eq{"p.DeleteAt": 0}).
+		Where("COALESCE(pr.Pid, p.Id) = p.Id"). // 排除引用消息
 		Limit(req.Limit)
 
 	switch req.Direction {
 	case "next":
 		if req.After > 0 {
-			query.Where(sq.Lt{"updateat": req.After})
+			query = query.Where(sq.Lt{"updateat": req.After})
 		}
-		query.OrderBy("updateat DESC")
+		query = query.OrderBy("updateat DESC")
 	case "prev":
 		if req.Before > 0 {
-			query.Where(sq.Gt{"updateat": req.Before})
+			query = query.Where(sq.Gt{"updateat": req.Before})
 		}
-		query.OrderBy("updateat ASC")
+		query = query.OrderBy("updateat ASC")
 	case "last":
-		query.OrderBy("updateat ASC")
+		query = query.OrderBy("updateat ASC")
 	case "first":
-		query.OrderBy("updateat DESC")
+		query = query.OrderBy("updateat DESC")
 	default:
 		// 暂仅支持向后加载更多
 		return nil, errors.New("invalid direction")
@@ -242,12 +263,7 @@ func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*
 		replies = funk.Reverse(replies).([]*model.PostReplyExt)
 	}
 
-	result := &model.TopicReplyList{
-		Replies: replies,
-		HasMore: len(replies) >= int(req.Limit), // 当前页满了, 可能还有
-	}
-
-	return result, err
+	return replies, err
 }
 
 // thread + topic + lvl2（话题直接回复，引用串中找，所有后代）
@@ -269,18 +285,18 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadTopic(req *model.PostRepliesReq) (
 	switch req.Direction {
 	case "next":
 		if req.After > 0 {
-			subQuery.Where(sq.Lt{"updateat": req.After})
+			subQuery = subQuery.Where(sq.Lt{"updateat": req.After})
 		}
-		subQuery.OrderBy("updateat DESC")
+		subQuery = subQuery.OrderBy("updateat DESC")
 	case "prev":
 		if req.Before > 0 {
-			subQuery.Where(sq.Gt{"updateat": req.Before})
+			subQuery = subQuery.Where(sq.Gt{"updateat": req.Before})
 		}
-		subQuery.OrderBy("updateat ASC")
+		subQuery = subQuery.OrderBy("updateat ASC")
 	case "last":
-		subQuery.OrderBy("updateat ASC")
+		subQuery = subQuery.OrderBy("updateat ASC")
 	case "first":
-		subQuery.OrderBy("updateat DESC")
+		subQuery = subQuery.OrderBy("updateat DESC")
 	default:
 		// 暂仅支持向后加载更多
 		return nil, errors.New("invalid direction")

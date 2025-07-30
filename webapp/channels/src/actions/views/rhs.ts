@@ -37,7 +37,7 @@ import {
 
 import {SidebarSize} from 'components/resizable_sidebar/constants';
 
-import {ActionTypes, RHSStates, Constants} from 'utils/constants';
+import {ActionTypes, RHSStates, Constants, Locations} from 'utils/constants';
 import {Mark, Measure, measureAndReport} from 'utils/performance_telemetry';
 import {getBrowserUtcOffset, getUtcOffsetForTimeZone} from 'utils/timezone';
 
@@ -508,6 +508,12 @@ export function closeRightHandSide(): ActionFunc {
                 channelId: '',
                 timestamp: 0,
             },
+            // 清除右侧当前选中的引用消息
+            {
+                type: ActionTypes.SELECT_QUOTE_POST,
+                postId: null,
+                location: Locations.RHS_COMMENT,
+            }
         ];
 
         dispatch(batchActions(actionsBatch));
