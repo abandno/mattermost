@@ -18,7 +18,6 @@ const MAX_LOAD_COUNT = 1000
 export class CommentNode {
     public before: AlphaNumN;
     public after: AlphaNumN;
-    public renderCount: number = 0;
     public isLoading: boolean = false;
 
     constructor(
@@ -33,6 +32,7 @@ export class CommentNode {
         // public readonly loadMoreFn: (more: number) => OriginItem[],
         public readonly offsetExtracter: (data: NU<OriginItem>) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
         public hasMore: boolean = false, // 后端设置，前端不可知
+        public renderCount: number = 0,
     ) {
         this._name = _name;
         this.id = id;
@@ -45,7 +45,7 @@ export class CommentNode {
         this.after = null;
         this.perPage = perPage;
         this.hasMore = hasMore;
-        // this.renderCount = this.perPage;
+        this.renderCount = renderCount;
         // this.loadMoreFn = loadMoreFn;
     }
 
@@ -162,8 +162,9 @@ export class CommentTree extends CommentNode {
         public readonly role: CommentNodeRole,
         public readonly perPage: number,
         public readonly offsetExtracter: (data: NU<OriginItem>) => AlphaNumN, // 偏移量获取规则, 有些根据id, 有些根据时间戳, 有些根据评论数等
+        public readonly renderCount: number = 0,
     ) {
-        super(_name, rootId, null, null, role, perPage, { id: rootId, pid: null }, [], offsetExtracter);
+        super(_name, rootId, null, null, role, perPage, { id: rootId, pid: null }, [], offsetExtracter, false, renderCount);
     }
 
     // // 首次加载根树

@@ -342,8 +342,9 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadComment(req *model.PostRepliesReq)
 	}
 
 	// 递归查回复链，实际post页面上懒加载，当前进返回回复关系链，用于翻页
-	// 前 10 条，现在就关联出posts
-	err = s.fillPosts4FirstPage(req, replies)
+	// 前 x 条，现在就关联出posts  
+	// TODO 剩下的回复message懒加载
+	err = s.fillPosts4FirstPage(20, replies)
 	if err != nil {
 		return &model.TopicReplyList{Replies: []*model.PostReplyExt{}}, err
 	}
@@ -352,15 +353,16 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadComment(req *model.PostRepliesReq)
 	return &model.TopicReplyList{Replies: replies, HasMore: false}, nil
 }
 
-func (s *SqlTopicStore) fillPosts4FirstPage(req *model.PostRepliesReq, replies []*model.PostReplyExt) error {
-	postids := make([]string, 0, int(req.Limit))
-	pids := make([]string, 0, int(req.Limit))
+func (s *SqlTopicStore) fillPosts4FirstPage(limit int, replies []*model.PostReplyExt) error {
+	i := utils.If(len(replies) > limit, limit, len(replies))
+	postids := make([]string, 0, i)
+	pids := make([]string, 0, i)
 	for _, r := range replies {
 		postids = append(postids, r.PostId)
 		if r.Pid != nil && r.Pid != r.Rid {
 			pids = append(pids, *r.Pid)
 		}
-		if len(postids) >= int(req.Limit) {
+		if len(postids) >= i {
 			break
 		}
 	}

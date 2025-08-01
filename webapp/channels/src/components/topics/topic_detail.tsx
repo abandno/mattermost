@@ -16,6 +16,9 @@ import LoadingScreen from 'components/loading_screen';
 import { useMd2PlainText } from 'hooks/useMd2PlainText';
 import { formatTime } from 'utils/datetime';
 import { CommentTree, CommentNode } from './model';
+import UserProfile from 'components/user_profile';
+import ProfilePicture from 'components/profile_picture';
+import { useUser } from 'components/common/hooks/useUser';
 
 import './topic_detail.scss';
 import { Post } from '@mattermost/types/posts';
@@ -23,6 +26,72 @@ import Markdown from 'components/markdown';
 import ReplyList from './reply_list';
 
 const PER_PAGE = 2;
+
+// 批量获取用户资料的 hook
+const useUsers = (userIds: string[]) => {
+    const dispatch = useDispatch();
+    const users = useSelector((state: any) => {
+        const result: Record<string, any> = {};
+        userIds.forEach(userId => {
+            if (userId) {
+                result[userId] = state.entities.users.profiles[userId];
+            }
+        });
+        return result;
+    });
+
+    useEffect(() => {
+        const missingUserIds = userIds.filter(userId => userId && !users[userId]);
+        if (missingUserIds.length > 0) {
+            // 批量获取缺失的用户资料
+            import('mattermost-redux/actions/users').then(({ getMissingProfilesByIds }) => {
+                dispatch(getMissingProfilesByIds(missingUserIds));
+            }).catch(error => {
+                console.error('Failed to load missing profiles:', error);
+            });
+        }
+    }, [dispatch, userIds.join(','), users]); // 使用 userIds.join(',') 作为依赖，避免对象比较
+
+    return users;
+};
+
+
+// 单独的评论组件，可以安全地调用 useUser hook
+const CommentItem = ({ comment, onMore, onFold }: {
+    comment: CommentNode;
+    onMore: (node: CommentNode) => void;
+    onFold: (node: CommentNode) => void;
+}) => {
+    const commentAuthor = useUser(comment.data.user_id || '');
+
+    return (
+        <div className='comment'>
+            <div className='comment-header'>
+                <ProfilePicture
+                    src={commentAuthor ? Client4.getProfilePictureUrl(commentAuthor.id, commentAuthor.last_picture_update) : ''}
+                    size='xs'
+                    userId={commentAuthor?.id}
+                    username={commentAuthor?.username}
+                />
+                <UserProfile
+                    userId={comment.data.user_id}
+                    displayUsername={true}
+                />
+                <span className='comment-time'>
+                    {formatTime(comment.data.create_at)}
+                </span>
+            </div>
+            <div className='comment-content'>
+                {comment.data.message}
+            </div>
+            <ReplyList
+                node={comment}
+                onMore={onMore}
+                onFold={onFold}
+            />
+        </div>
+    );
+};
 
 const TopicDetail = () => {
     const dispatch = useDispatch();
@@ -35,12 +104,66 @@ const TopicDetail = () => {
     const [quotedPost, setQuotedPost] = useState<Post | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [rollPageOpts, setRollPageOpts] = useState<[number, number, string]>([0, 0, 'first'])
-    const [topicDirectReplyTree, setTopicDirectReplyTree] = useState<CommentTree>(new CommentTree('topicDirectReplyTree', topicId, 'topic-reply', PER_PAGE, (data: any) => data.updateat));
+    const [topicDirectReplyTree, setTopicDirectReplyTree] = useState<CommentTree>(new CommentTree(
+        'topicDirectReplyTree', topicId, 'topic-reply', PER_PAGE,
+        (data: any) => data.update_at,
+        2
+    ));
     const [topicCommentTree, setTopicCommentTree] = useState<CommentTree>(new CommentTree(
         'topicCommentTree', topicId, 'topic', PER_PAGE,
         // offsetExtracter
         (data) => data?.update_at
     ));
+
+    // 获取话题作者的用户资料
+    const topicAuthor = useUser(topic?.user_id || '');
+
+    // 收集所有需要的用户 ID 进行批量获取
+    const allUserIds = React.useMemo(() => {
+        const userIds: Set<string> = new Set();
+
+        // 添加话题作者
+        if (topic?.user_id) {
+            userIds.add(topic.user_id);
+        }
+
+        // 添加引用消息作者
+        if (quotedPost?.user_id) {
+            userIds.add(quotedPost.user_id);
+        }
+
+        // 添加评论作者
+        topicCommentTree.children?.forEach(comment => {
+            if (comment.data.user_id) {
+                userIds.add(comment.data.user_id);
+            }
+            // 添加评论的回复作者
+            comment.renderChildren((reply) => {
+                if (reply.data.user_id) {
+                    userIds.add(reply.data.user_id);
+                }
+                if (reply.data.puser_id) {
+                    userIds.add(reply.data.puser_id);
+                }
+            });
+        });
+
+
+        // 添加话题直接回复的作者
+        topicDirectReplyTree.children?.forEach((reply) => {
+            if (reply.data.user_id) {
+                userIds.add(reply.data.user_id);
+            }
+            if (reply.data.puser_id) {
+                userIds.add(reply.data.puser_id);
+            }
+        });
+
+        return Array.from(userIds);
+    }, [topic, quotedPost, topicCommentTree, topicDirectReplyTree]);
+
+    // 批量获取用户资料
+    const allUsers = useUsers(allUserIds); // 尽量收集当前已知的用户列表, 调用下即可, 批量获取用户信息, 放redux
 
     useEffect(() => {
         // 设置左侧边栏选中状态为话题页
@@ -158,7 +281,7 @@ const TopicDetail = () => {
                 node.renderMore(more)
             } else if (node.renderCount > node.perPage) {
                 // TODO 后面页的消息等字段是懒加载模式的
-                
+
             }
         } finally {
             node.isLoading = false
@@ -210,9 +333,20 @@ const TopicDetail = () => {
                         </div>
                     )}
                     <div className='topic-meta'>
-                        <span>作者: {topic.user_id || '未知'}</span>
-                        <span>时间: {formatTime(topic.create_at)}</span>
-                        <span>回复数: {topic.reply_count || 0}</span>
+                        <div className='topic-author'>
+                            <ProfilePicture
+                                src={topicAuthor ? Client4.getProfilePictureUrl(topicAuthor.id, topicAuthor.last_picture_update) : ''}
+                                size='sm'
+                                userId={topicAuthor?.id}
+                                username={topicAuthor?.username}
+                            />
+                            <UserProfile
+                                userId={topic.user_id}
+                                displayUsername={true}
+                            />
+                        </div>
+                        <span className='topic-time'>时间: {formatTime(topic.create_at)}</span>
+                        <span className='topic-replies'>回复数: {topic.reply_count || 0}</span>
                     </div>
                 </div>
                 <div className='topic-content-card'>
@@ -230,53 +364,6 @@ const TopicDetail = () => {
                         onMore={(node, more) => handleLoadMoreReplies(node, 'topic-reply', () => setTopicDirectReplyTree(topicDirectReplyTree.copy()), more)}
                         onFold={(node) => handleFoldReplies(node, () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
                     />
-                    {/* {topicDirectReplyTree.hasChildren() && (
-                        <div className='topic-direct-reply'>
-                            <div className='topic-direct-reply__comments'>
-                                {topicDirectReplyTree.renderChildren((comment) => (
-                                    <div key={comment.id} className='comment'>
-                                        <div className='comment-content'>
-                                            {comment.data.message}
-                                        </div>
-                                        <div className='comment-meta'>
-                                            <span className='comment-author'>
-                                                {comment.data.user_id || '未知用户'}
-                                            </span>
-                                            <span className='comment-time'>
-                                                {formatTime(comment.data.create_at)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div
-                                className={`topic-direct-reply__load-more`}
-                            >
-                                {topicDirectReplyTree.isLoading ? (
-                                    <span>加载中...</span>
-                                ) : (
-                                    <div>
-                                        {topicDirectReplyTree.canRenderMore() &&
-                                            <span
-                                                className='load-more-hint clickable'
-                                                onClick={() => handleLoadMoreReplies(topicDirectReplyTree, 'topic-reply', () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
-                                            >
-                                                {topicDirectReplyTree.renderCount >= topicDirectReplyTree.perPage ? '展开更多' : '展开 ' + topicDirectReplyTree.childrenSize() + ' 条回复'}
-                                            </span>
-                                        }
-                                        {topicDirectReplyTree.renderCount > 0 && (
-                                            <span
-                                                className='load-more-hint clickable'
-                                                onClick={() => handleFoldReplies(topicDirectReplyTree, () => setTopicDirectReplyTree(topicDirectReplyTree.copy()))}
-                                            >
-                                                收起
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )} */}
                 </div>
                 <div className='topic-detail__comments'>
                     <h3>评论区 ({topicCommentTree.childrenSize()})</h3>
@@ -284,73 +371,16 @@ const TopicDetail = () => {
                         {!topicCommentTree.hasChildren() ? (
                             <div className='no-comments'>暂无评论</div>
                         ) : (
-                            topicCommentTree.children.map((comment) => (
-                                <div key={comment.id} className='comment'>
-                                    <div className='comment-content'>
-                                        {comment.data.message}
-                                    </div>
-                                    <div className='comment-meta'>
-                                        <span className='comment-author'>
-                                            {comment.data.user_id || '未知用户'}
-                                        </span>
-                                        <span className='comment-time'>
-                                            {formatTime(comment.data.create_at)}
-                                        </span>
-                                    </div>
-                                    <ReplyList
-                                        node={comment}
+                            topicCommentTree.children.map((comment) => {
+                                return (
+                                    <CommentItem
+                                        key={comment.id}
+                                        comment={comment}
                                         onMore={(node) => handleLoadMoreReplies(node, 'comment-reply', () => setTopicCommentTree(topicCommentTree.copy()))}
                                         onFold={(node) => handleFoldReplies(node, () => setTopicCommentTree(topicCommentTree.copy()))}
                                     />
-                                    {/* {comment.canRenderMore() && (
-                                        <div className='topic-direct-reply'>
-                                            <div className='topic-direct-reply__comments'>
-                                                {comment.renderChildren((reply) => (
-                                                    <div key={reply.id} className='comment'>
-                                                        <div className='comment-content'>
-                                                            {reply.data.message}
-                                                        </div>
-                                                        <div className='comment-meta'>
-                                                            <span className='comment-author'>
-                                                                {reply.data.user_id || '未知用户'}
-                                                            </span>
-                                                            <span className='comment-time'>
-                                                                {formatTime(reply.data.create_at)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <div
-                                                className={`topic-direct-reply__load-more`}
-                                            >
-                                                {comment.isLoading ? (
-                                                    <span>加载中...</span>
-                                                ) : (
-                                                    <div>
-                                                        {comment.canRenderMore() &&
-                                                            <span
-                                                                className='load-more-hint clickable'
-                                                                onClick={() => handleLoadMoreReplies(comment, 'comment-reply', () => setTopicCommentTree(topicCommentTree.copy()))}
-                                                            >
-                                                                {comment.renderCount >= comment.perPage ? '展开更多' : '展开 ' + comment.childrenSize() + ' 条回复'}
-                                                            </span>
-                                                        }
-                                                        {comment.renderCount > 0 && (
-                                                            <span
-                                                                className='load-more-hint clickable'
-                                                                onClick={() => handleFoldReplies(comment, () => setTopicCommentTree(topicCommentTree.copy()))}
-                                                            >
-                                                                收起
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )} */}
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </div>
                     <div className='comment-pagination'>
