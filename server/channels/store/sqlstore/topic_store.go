@@ -69,10 +69,13 @@ func (s *SqlTopicStore) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.Topic
 		"threadQuery",
 		`SELECT * FROM 
 		(
-			SELECT *
+			SELECT postid, 
+                   MAX(replycount) as replycount, 
+                   MAX(lastreplyat) as lastreplyat, 
+                   STRING_AGG(thread_type, ',' ORDER BY thread_type) as thread_type
 			FROM (
 				(
-					SELECT postid, replycount, lastreplyat, participants, 'thread' as thread_type 
+					SELECT postid, replycount, lastreplyat, 'thread' as thread_type 
 					FROM threads 
 					WHERE {{.DeleteatCond4Thread}} {{.Where}}
 					ORDER BY {{.Order}}
@@ -80,14 +83,15 @@ func (s *SqlTopicStore) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.Topic
 				)
 				UNION ALL
 				(
-					SELECT postid, replycount, lastreplyat, participants, 'replythread' as thread_type 
+					SELECT postid, replycount, lastreplyat, 'replythread' as thread_type 
 					FROM replythreads 
 					WHERE {{.DeleteatCond4ReplyThread}} {{.Where}}
 					ORDER BY {{.Order}}
 					LIMIT {{.Limit}}
 				)
 			) AS combined_threads
-			ORDER BY combined_threads.replycount DESC
+			GROUP BY postid
+			ORDER BY replycount DESC
 			LIMIT {{.Limit}}
 		) as final_threads
 		JOIN posts on final_threads.postid = posts.id`,
@@ -102,7 +106,7 @@ func (s *SqlTopicStore) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.Topic
 	threadsRows := []*model.TopicItem{}
 	err = s.GetReplica().Select(&threadsRows, threadQuery)
 	if err != nil {
-		return nil, err
+		return nil, model.NewError("topic_store.GetTopics4Hot", "failed to select").Wrap(err)
 	}
 
 	// AttachPost 处理, 暂是帖子的最新回复
@@ -198,14 +202,14 @@ func getLatestReplies(s *SqlTopicStore, ids []string, mode model.ThreadType) map
 
 // thread + topic + lvl1（评论列表，讨论串里找）
 func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*model.TopicReplyList, error) {
-	replies, err := s.getReplies4ThreadTopicLvl2_0(req)
+	replies, err := s.getReplies4ThreadTopicLvl1_0(req)
 
 	// // 上一页或下一页但空页, 则可能是超出范围, 降级分别采用首页和尾页降级返回, 避免有数据时返回空页 (DEL: 尾页不够, 降级尾页还需要返回相同数量才好, 否则容易懵)
 	// if len(replies) == 0 && (req.Direction == "next" || req.Direction == "prev") {
 	// 	var direction2 = utils.If(req.Direction == "next", "last", "first")
-	// 	mlog.Debug(fmt.Sprintf("getReplies4ThreadTopicLvl2_0 empty: will fallback to first/last, %s -> %s", req.Direction, direction2))
+	// 	mlog.Debug(fmt.Sprintf("getReplies4ThreadTopicLvl1_0 empty: will fallback to first/last, %s -> %s", req.Direction, direction2))
 	// 	req.Direction = direction2
-	// 	replies, err = s.getReplies4ThreadTopicLvl2_0(req)
+	// 	replies, err = s.getReplies4ThreadTopicLvl1_0(req)
 	// }
 
 	result := &model.TopicReplyList{
@@ -216,9 +220,9 @@ func (s *SqlTopicStore) GetReplies4ThreadTopicLvl1(req *model.PostRepliesReq) (*
 	return result, err
 }
 
-func (s *SqlTopicStore) getReplies4ThreadTopicLvl2_0(req *model.PostRepliesReq) ([]*model.PostReplyExt, error) {
+func (s *SqlTopicStore) getReplies4ThreadTopicLvl1_0(req *model.PostRepliesReq) ([]*model.PostReplyExt, error) {
 	query := s.getQueryBuilder().
-		Select("p.id PostId, p.message Message, p.userid UserId, p.createat CreateAt, p.updateat UpdateAt, pr.Pid, pr.Rid, COALESCE(pr.DRcount, 0) DRcount").
+		Select("p.id PostId, p.message Message, p.userid UserId, p.ChannelId, p.createat CreateAt, p.updateat UpdateAt, p.RootId Tid, pr.Pid, pr.Rid, COALESCE(pr.DRcount, 0) DRcount").
 		From("Posts p").
 		LeftJoin("PostReply pr ON pr.PostId = p.Id").
 		Where(sq.Eq{"RootId": req.PostId}).
@@ -342,7 +346,7 @@ func (s *SqlTopicStore) GetReplies4ReplyThreadComment(req *model.PostRepliesReq)
 	}
 
 	// 递归查回复链，实际post页面上懒加载，当前进返回回复关系链，用于翻页
-	// 前 x 条，现在就关联出posts  
+	// 前 x 条，现在就关联出posts
 	// TODO 剩下的回复message懒加载
 	err = s.fillPosts4FirstPage(20, replies)
 	if err != nil {
@@ -359,8 +363,8 @@ func (s *SqlTopicStore) fillPosts4FirstPage(limit int, replies []*model.PostRepl
 	pids := make([]string, 0, i)
 	for _, r := range replies {
 		postids = append(postids, r.PostId)
-		if r.Pid != nil && r.Pid != r.Rid {
-			pids = append(pids, *r.Pid)
+		if r.Pid.String != "" && r.Pid != r.Rid {
+			pids = append(pids, r.Pid.String)
 		}
 		if len(postids) >= i {
 			break
@@ -374,7 +378,7 @@ func (s *SqlTopicStore) fillPosts4FirstPage(limit int, replies []*model.PostRepl
 			parentPostUsersChan <- map[string]*model.Post{}
 			return
 		}
-		query, args, err := sq.Select("Id, UserId").From("posts").Where(sq.Eq{"id": pids}).ToSql()
+		query, args, err := sq.Select("Id, UserId, RootId as Tid").From("posts").Where(sq.Eq{"id": pids}).ToSql()
 		if err != nil {
 			mlog.Error("", mlog.Err(err))
 			parentPostUsersChan <- map[string]*model.Post{}
@@ -394,7 +398,8 @@ func (s *SqlTopicStore) fillPosts4FirstPage(limit int, replies []*model.PostRepl
 
 	// 批量查 posts
 	posts := []*model.Post{}
-	query, args, err := sq.Select("*").From("posts").Where(sq.Eq{"id": postids}).ToSql()
+	query, args, err := sq.Select("RootId as Tid, *").From("posts").Where(sq.Eq{"id": postids}).ToSql()
+	mlog.Debug("SqlTopicStore.fillPosts4FirstPage", mlog.String("sql", query), mlog.Any("args", args))
 	if err != nil {
 		return errors.Wrap(err, "GetPosts_Tosql")
 	}
@@ -415,8 +420,9 @@ func (s *SqlTopicStore) fillPosts4FirstPage(limit int, replies []*model.PostRepl
 			r.Message = post.Message
 			r.UserId = post.UserId
 			r.ChannelId = post.ChannelId
+			r.Tid = post.Tid
 		}
-		if ppost, ok := parentPostMap[r.PostId]; ok {
+		if ppost, ok := parentPostMap[r.Pid.String]; ok {
 			r.PUserId = ppost.UserId
 		}
 	}
@@ -441,7 +447,7 @@ func (s *SqlTopicStore) queryDescendantReply(req *model.PostRepliesReq) ([]*mode
         )
     `, req.PostId, maxrec).
 		From("descendants").
-		OrderBy("updateat ASC").
+		OrderBy("createat ASC").
 		Limit(uint64(REPLY_MAX_LOAD_COUNT)).
 		ToSql()
 	mlog.Debug("SqlTopicStore.GetReplies4ReplyThreadComment", mlog.String("sql", sql), mlog.Any("args", args))

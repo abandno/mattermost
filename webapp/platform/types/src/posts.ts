@@ -100,9 +100,13 @@ export type Post = {
     is_following?: boolean;
     exists?: boolean;
     remote_id?: string;
+    post_id?: string; // id
     rid?: string;
     pid?: string;
+    tid?: string;
+    rtid?: string;
     thread_types?: string[];
+    puser_id?: string;
 };
 
 export type PostState = 'DELETED';

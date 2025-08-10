@@ -242,7 +242,7 @@ export function createPost(
 
         dispatch(batchActions(actions, 'BATCH_CREATE_POST_INIT'));
 
-        (async function createPostWrapper() {
+        const resp = await (async function createPostWrapper() {
             try {
                 // console.log('==begin Client4.createPost', newPost)
                 const created = await Client4.createPost({...newPost, create_at: 0});
@@ -307,7 +307,8 @@ export function createPost(
             }
         }());
 
-        return {data: {created: true}};
+        // return {data: {created: true}};
+        return resp;
     };
 }
 

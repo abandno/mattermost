@@ -1,12 +1,14 @@
 import { AlphaNum, AlphaNumN, N, NU, StringN } from "@mattermost/types/general";
+import { Post } from "@mattermost/types/posts";
 import { shallowCopyInstance } from "mattermost-webapp/src/utils/utils";
 
 type CommentNodeRole = 'topic' | 'comment' | 'reply' | 'topic-reply';
-type OriginItem = {
-    id: string;
-    pid: StringN;
-    [key: string]: any;
-}
+// type OriginItem = {
+//     id: string;
+//     pid: StringN;
+//     [key: string]: any;
+// }
+type OriginItem = Post
 
 const MAX_LOAD_COUNT = 1000
 

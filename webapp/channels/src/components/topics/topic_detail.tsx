@@ -24,6 +24,8 @@ import './topic_detail.scss';
 import { Post } from '@mattermost/types/posts';
 import Markdown from 'components/markdown';
 import ReplyList from './reply_list';
+import TextButton from 'components/widgets/buttons/text_button';
+import CommentFooter, { ActionItem } from './comment_footer';
 
 const PER_PAGE = 2;
 
@@ -77,13 +79,18 @@ const CommentItem = ({ comment, onMore, onFold }: {
                     userId={comment.data.user_id}
                     displayUsername={true}
                 />
-                <span className='comment-time'>
-                    {formatTime(comment.data.create_at)}
-                </span>
+
             </div>
             <div className='comment-content'>
                 {comment.data.message}
             </div>
+            <CommentFooter post={comment.data}>
+                <span className='comment-time'>
+                    {formatTime(comment.data.create_at)}
+                </span>
+                <ActionItem>点赞</ActionItem>
+                <ActionItem>点踩</ActionItem>
+            </CommentFooter>
             <ReplyList
                 node={comment}
                 onMore={onMore}
@@ -359,6 +366,19 @@ const TopicDetail = () => {
                             </div>
                         </div>
                     )}
+                    {/* <div className='comment-footer'>
+                        <div className='comment-actions'>
+                            <span>点赞</span>
+                            <span>点踩</span>
+                        </div>
+                        <div className='comment-reply'>
+                            <TextButton>回复</TextButton>
+                        </div>
+                    </div> */}
+                    <CommentFooter post={topic}>
+                        <ActionItem>点赞</ActionItem>
+                        <ActionItem>点踩</ActionItem>
+                    </CommentFooter>
                     <ReplyList
                         node={topicDirectReplyTree}
                         onMore={(node, more) => handleLoadMoreReplies(node, 'topic-reply', () => setTopicDirectReplyTree(topicDirectReplyTree.copy()), more)}
@@ -384,9 +404,9 @@ const TopicDetail = () => {
                         )}
                     </div>
                     <div className='comment-pagination'>
-                        <button className='comment-pagination__button' onClick={() => handleCommentPageChange('first')}>首页</button>
-                        <button className='comment-pagination__button' onClick={() => handleCommentPageChange('prev')}>上一页</button>
-                        <button className='comment-pagination__button' onClick={() => handleCommentPageChange('next')}>下一页</button>
+                        <TextButton onClick={() => handleCommentPageChange('first')}>首页</TextButton>
+                        <TextButton onClick={() => handleCommentPageChange('prev')}>上一页</TextButton>
+                        <TextButton onClick={() => handleCommentPageChange('next')}>下一页</TextButton>
                     </div>
                 </div>
             </div>

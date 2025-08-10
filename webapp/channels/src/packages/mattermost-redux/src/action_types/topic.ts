@@ -9,4 +9,7 @@ export default keyMirror({
     GET_TOPICS_SUCCESS: null,
     GET_TOPICS_FAILURE: null,
     RECEIVED_TOPICS: null,
+
+    SET_ACTIVE_REPLY: null,
+    CLEAR_ACTIVE_REPLY: null,
 }); 

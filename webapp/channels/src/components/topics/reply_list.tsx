@@ -5,6 +5,9 @@ import UserProfile from 'components/user_profile';
 import ProfilePicture from 'components/profile_picture';
 import { useUser } from 'components/common/hooks/useUser';
 import { Client4 } from 'mattermost-redux/client';
+import TextButton from 'components/widgets/buttons/text_button';
+import CommentFooter, { ActionItem } from './comment_footer';
+import { Post } from '@mattermost/types/posts';
 
 interface ReplyListProps {
     node: CommentNode;
@@ -17,7 +20,7 @@ interface ReplyListProps {
 // 单独的回复组件，可以安全地调用 useUser hook
 const ReplyItem = ({ reply }: { reply: CommentNode }) => {
     const replyAuthor = useUser(reply.data.user_id || '');
-    
+
     return (
         <div className='comment'>
             <div className='comment-header'>
@@ -31,13 +34,17 @@ const ReplyItem = ({ reply }: { reply: CommentNode }) => {
                     userId={reply.data.user_id}
                     displayUsername={true}
                 />
-                <span className='comment-time'>
-                    {formatTime(reply.data.create_at)}
-                </span>
             </div>
             <div className='comment-content'>
                 {reply.data.message}
             </div>
+            <CommentFooter post={reply.data}>
+                <span className='comment-time'>
+                    {formatTime(reply.data.create_at)}
+                </span>
+                <ActionItem>点赞</ActionItem>
+                <ActionItem>点踩</ActionItem>
+            </CommentFooter>
         </div>
     );
 };

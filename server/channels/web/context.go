@@ -115,7 +115,8 @@ func (c *Context) LogErrorByCode(err *model.AppError) {
 	switch {
 	case (code >= http.StatusBadRequest && code < http.StatusInternalServerError) ||
 		err.Id == "web.check_browser_compatibility.app_error":
-		c.Logger.Debug(msg, fields...)
+		// c.Logger.Debug(msg, fields...)
+		c.Logger.Error(msg, fields...)
 	case code == http.StatusNotImplemented:
 		c.Logger.Info(msg, fields...)
 	default:

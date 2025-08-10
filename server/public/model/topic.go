@@ -48,8 +48,8 @@ type PostReplyExt struct {
 	OriginalId string `json:"original_id"`
 	Message    string `json:"message"`
 	// Quote reference fields
-	Pid      *string `json:"pid"` // Quote post ID - the specific post being quoted
-	Rid      *string `json:"rid"` // Quote root ID - the root post of the quoted thread
+	// Pid      *string `json:"pid"` // Quote post ID - the specific post being quoted
+	// Rid      *string `json:"rid"` // Quote root ID - the root post of the quoted thread
 	Tid      *string `json:"tid"`
 	RtId     *string `json:"rtid"`
 	TrCount  *int64  `json:"trcount"`

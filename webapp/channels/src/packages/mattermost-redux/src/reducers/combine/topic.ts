@@ -98,6 +98,51 @@ export function hotTopicsSelector(state: GlobalState) {
 }
 
 
+export function setActiveReplyAction(postId: string): MMAction {
+    return {
+        type: TopicTypes.SET_ACTIVE_REPLY,
+        data: postId,
+    };
+}
+
+export function clearActiveReplyAction(): MMAction {
+    return {
+        type: TopicTypes.CLEAR_ACTIVE_REPLY,
+        data: null,
+    };
+}
+
+// ---- active reply post ----
+const replyInitialState = {
+    activeReplyPostId: null,
+};
+function replyReducer(state = replyInitialState, action: MMAction) {
+    switch (action.type) {
+        case TopicTypes.SET_ACTIVE_REPLY:
+            return {
+                ...state,
+                activeReplyPostId: action.data,
+            };
+        case TopicTypes.CLEAR_ACTIVE_REPLY:
+            return {
+                ...state,
+                activeReplyPostId: null,
+            };
+        default:
+            return state;
+    }
+}
+
+export function getActiveReplyPostIdSelector(state: GlobalState): string | null {
+    return state.topic.reply.activeReplyPostId;
+}
+
+export function isReplyActiveSelector(state: GlobalState, postId: string): boolean {
+    return state.topic.reply.activeReplyPostId === postId;
+}
+
+
 export default combineReducers({
     hotTopics: hotTopicsReducer,
+    reply: replyReducer,
 });

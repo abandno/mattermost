@@ -33,6 +33,7 @@ export type PostDraft = {
     };
     rid?: string;
     pid?: string;
+    tid?: string;
 };
 
 export function isPostDraftEmpty(draft: PostDraft): boolean {

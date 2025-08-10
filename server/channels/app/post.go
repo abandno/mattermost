@@ -24,6 +24,7 @@ import (
 	"github.com/mattermost/mattermost/server/v8/channels/store/sqlstore"
 	"github.com/mattermost/mattermost/server/v8/platform/services/cache"
 	"github.com/mattermost/mattermost/server/v8/platform/services/telemetry"
+	"gopkg.in/guregu/null.v4"
 )
 
 var pendingPostIDsCacheTTL = 30 * time.Second
@@ -2877,8 +2878,8 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 	now := model.GetMillis()
 	currentReply := &model.PostReply{
 		PostId:   post.Id,
-		Pid:      *post.Pid,
-		Rid:      *post.Rid,
+		Pid:      null.StringFrom(*post.Pid),
+		Rid:      null.StringFrom(*post.Rid),
 		CreateAt: now,
 		UpdateAt: now,
 	}
@@ -2891,11 +2892,11 @@ func (a *App) handleQuoteReferences(c request.CTX, post *model.Post) *model.AppE
 		// B回复A 情况
 		rootReply := &model.PostReply{
 			PostId:   *post.Rid,
-			Pid:      *post.Rid,
-			Rid:      *post.Rid,
+			Pid:      null.StringFrom(*post.Rid),
+			Rid:      null.StringFrom(*post.Rid),
 			CreateAt: now,
 			UpdateAt: now,
-			DRcount:  1,
+			DRcount:  null.IntFrom(1),
 		}
 		// 新增 rootReply
 		if err := a.Srv().Store().PostReply().Save(rootReply); err != nil {

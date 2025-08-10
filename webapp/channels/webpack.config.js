@@ -88,11 +88,6 @@ var config = {
                     {
                         loader: 'css-loader',
                     },
-                ],
-            },
-            {
-                test: /\.scss$/,
-                use: [
                     {
                         loader: 'sass-loader',
                         options: {
@@ -433,6 +428,7 @@ if (targetIsDevServer) {
         devtool: 'eval-cheap-module-source-map',
         devServer: {
             liveReload: true,
+            hot: true,
             proxy: [
                 {
                     context: '/api',

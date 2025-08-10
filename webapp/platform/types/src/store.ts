@@ -103,5 +103,8 @@ export type GlobalState = {
     };
     topic: {
         hotTopics: Array<any>;
+        reply: {
+            activeReplyPostId: string | null;
+        };
     }
 };

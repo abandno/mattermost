@@ -23,13 +23,13 @@ func (a *App) GetTopics(c request.CTX, opts *model.TopicPageOpts) ([]*model.Topi
 
 func (a *App) GetTopics4Hot(opts *model.TopicPageOpts) ([]*model.TopicItem, *model.AppError) {
 	// 获取调用栈信息
-	_, file, line, _ := runtime.Caller(0)
-
+	
 	topics, err := a.Srv().Store().Topic().GetTopics4Hot(opts)
 	if err != nil {
+		_, file, line, _ := runtime.Caller(0)
 		// 构建详细的错误信息
-		detailedError := fmt.Sprintf("GetTopics4Hot failed at %s:%d, opts: %+v, error: %v", file, line, opts, err)
-		return nil, model.NewAppError("GetTopics4Hot", "app.topic.get_topics4hot.app_error", nil, detailedError, 500).Wrap(err)
+		detailedError := fmt.Sprintf("at %s:%d, opts: %+v", file, line, opts)
+		return nil, model.NewError("GetTopics4Hot",  detailedError).Wrap(err)
 	}
 	return topics, nil
 }

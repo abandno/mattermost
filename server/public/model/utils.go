@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"net/mail"
 	"net/url"
 	"os"
@@ -271,7 +272,8 @@ func (er *AppError) Error() string {
 	// render the wrapped error
 	err := er.wrapped
 	if err != nil {
-		sb.WriteString(", ")
+		// sb.WriteString(", ")
+		sb.WriteString("\n-> ")
 		sb.WriteString(err.Error())
 	}
 
@@ -376,6 +378,17 @@ func NewAppError(where string, id string, params map[string]any, details string,
 		StatusCode:    status,
 	}
 	ap.Translate(translateFunc)
+	return ap
+}
+
+// NewError 简易构造, 传错误位置和错误信息, 然后 Wrap 原err即可
+func NewError(where string, message string) *AppError {
+	ap := &AppError{
+		Message:    message,
+		Where:      where,
+		StatusCode: http.StatusInternalServerError,
+	}
+	ap.SkipTranslation = true
 	return ap
 }
 

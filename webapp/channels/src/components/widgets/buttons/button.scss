@@ -1,0 +1,16 @@
+.mm-text-button {
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        color: var(--link-color);
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--link-color-20);
+    }
+}
