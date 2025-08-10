@@ -25,7 +25,7 @@ import { Post } from '@mattermost/types/posts';
 import Markdown from 'components/markdown';
 import ReplyList from './reply_list';
 import TextButton from 'components/widgets/buttons/text_button';
-import CommentFooter, { ActionItem } from './comment_footer';
+import CommentFooter, { ActionItem, CommentInputEditer } from './comment_footer';
 
 const PER_PAGE = 2;
 
@@ -387,6 +387,10 @@ const TopicDetail = () => {
                 </div>
                 <div className='topic-detail__comments'>
                     <h3>评论区 ({topicCommentTree.childrenSize()})</h3>
+                    <CommentInputEditer
+                        visible={true}
+                        post={topic}
+                    />
                     <div className='comments-list'>
                         {!topicCommentTree.hasChildren() ? (
                             <div className='no-comments'>暂无评论</div>

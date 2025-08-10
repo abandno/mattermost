@@ -2,12 +2,11 @@ import React, { useEffect, useState } from "react"
 import styled from "styled-components"
 import { useDispatch, useSelector } from 'react-redux';
 
-import { Post } from '@mattermost/types/posts';
-
 import TextButton from "components/widgets/buttons/text_button"
-import { onSubmit } from 'actions/views/create_comment';
+import { onSubmit, SubmitPostReturnType } from 'actions/views/create_comment';
 import { PostDraft } from 'types/store/draft';
 import { clearActiveReplyAction, getActiveReplyPostIdSelector, setActiveReplyAction } from "mattermost-redux/reducers/combine/topic";
+import { Post } from "@mattermost/types/posts";
 
 
 interface CommentFooterProps {
@@ -98,10 +97,103 @@ const SendButton = styled.button<{ disabled?: boolean }>`
     }
 `;
 
-const CommentFooter = ({ post, children, className }: CommentFooterProps) => {
+export type CommentInputEditerProps = {
+    visible: boolean;
+    post: Post;
+    afterSubmit?: (params: { result: SubmitPostReturnType; text: string; post: Post }) => any;
+};
+
+export const CommentInputEditer = ({ visible, post, afterSubmit }: CommentInputEditerProps) => {
+    const dispatch = useDispatch();
     const [replyText, setReplyText] = useState('');
-    // const [isInputVisible, setIsInputVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // 当组件变为非活跃状态时，清除文本
+    useEffect(() => {
+        if (!visible) {
+            setReplyText('');
+        }
+    }, [visible]);
+
+    const handleSubmit = async () => {
+        if (replyText.trim() === '') {
+            return;
+        }
+        setIsSubmitting(true);
+        const content = replyText?.trim();
+        if (!content) {
+            return { ok: true };
+        }
+
+        try {
+            // 构建 PostDraft 对象
+            const postId = post.id || post.post_id || '';
+            const draft: PostDraft = {
+                message: content,
+                fileInfos: [],
+                uploadsInProgress: [],
+                channelId: post.channel_id,
+                createAt: Date.now(),
+                updateAt: Date.now(),
+                props: {},
+                pid: postId,
+                rid: post.rid || postId,
+                rootId: post.tid || '', // 如果是回复的回复，使用原始 root_id，否则使用当前 post 的 id
+                tid: post.tid || '',
+            };
+
+            // 发送回复消息
+            const response = await dispatch(onSubmit(draft, {
+                afterSubmit: (result) => {
+                    console.log('==发送回复 afterSubmit result:', result);
+                    // 发送成功后的回调
+                    // setReplyText('');
+                    // setIsSubmitting(false);
+                    // dispatch(clearActiveReplyAction()); // 发送成功后清除活跃状态
+                    afterSubmit && afterSubmit({result, text: content, post});
+                }
+            }));
+            console.log('==发送回复 response:', response);
+            if (response?.error) {
+                console.error('==发送回复失败:', response.error);
+                // setIsSubmitting(false);
+            } else {
+                setReplyText('');
+                setIsSubmitting(false);
+            }
+            return response;
+        } catch (error) {
+            console.error('发送回复时出错:', error);
+            // setIsSubmitting(false);
+            return { error };
+        }
+    };
+
+    return <InputContainer isVisible={!!visible}>
+        <TextArea
+            placeholder="输入评论..."
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                }
+            }}
+        />
+        <SendButton
+            onClick={handleSubmit}
+            disabled={isSubmitting || !replyText.trim()}
+        >
+            {isSubmitting ? '发送中...' : '发送'}
+        </SendButton>
+    </InputContainer>
+}
+
+const CommentFooter = ({ post, children, className }: CommentFooterProps) => {
+    // const [replyText, setReplyText] = useState('');
+    // const [isInputVisible, setIsInputVisible] = useState(false);
+    // const [isSubmitting, setIsSubmitting] = useState(false);
 
     const dispatch = useDispatch();
 
@@ -114,65 +206,67 @@ const CommentFooter = ({ post, children, className }: CommentFooterProps) => {
         if (isInputVisible) {
             // 隐藏输入框并清除内容
             dispatch(clearActiveReplyAction());
-            setReplyText('');
+            // setReplyText('');
         } else {
             // 显示输入框（会自动关闭其他输入框）
             dispatch(setActiveReplyAction(postId));
         }
     };
 
-    // 当组件变为非活跃状态时，清除文本
-    useEffect(() => {
-        if (!isInputVisible) {
-            setReplyText('');
-        }
-    }, [isInputVisible]);
+    // // 当组件变为非活跃状态时，清除文本
+    // useEffect(() => {
+    //     if (!isInputVisible) {
+    //         setReplyText('');
+    //     }
+    // }, [isInputVisible]);
 
-    const handleSendClick = async () => {
-        if (replyText.trim() && !isSubmitting) {
-            setIsSubmitting(true);
+    const afterSubmit = ({result, text, post}) => {
+        dispatch(clearActiveReplyAction()); // 发送成功后清除活跃状态
+    }
+    const handleSendClick = async (text: string, post: Post) => {
+        // const content = text?.trim();
+        // if (!content) {
+        //     return {ok: true};
+        // }
 
-            try {
-                // 构建 PostDraft 对象
-                const postId = post.id || post.post_id || '';
-                const draft: PostDraft = {
-                    message: replyText.trim(),
-                    fileInfos: [],
-                    uploadsInProgress: [],
-                    channelId: post.channel_id,
-                    createAt: Date.now(),
-                    updateAt: Date.now(),
-                    props: {},
-                    pid: postId,
-                    rid: post.rid || postId,
-                    rootId: post.tid || '', // 如果是回复的回复，使用原始 root_id，否则使用当前 post 的 id
-                    tid: post.tid || '',
-                };
+        // try {
+        //     // 构建 PostDraft 对象
+        //     const postId = post.id || post.post_id || '';
+        //     const draft: PostDraft = {
+        //         message: content,
+        //         fileInfos: [],
+        //         uploadsInProgress: [],
+        //         channelId: post.channel_id,
+        //         createAt: Date.now(),
+        //         updateAt: Date.now(),
+        //         props: {},
+        //         pid: postId,
+        //         rid: post.rid || postId,
+        //         rootId: post.tid || '', // 如果是回复的回复，使用原始 root_id，否则使用当前 post 的 id
+        //         tid: post.tid || '',
+        //     };
 
-                // 发送回复消息
-                const response = await dispatch(onSubmit(draft, {
-                    afterSubmit: (result) => {
-                        console.log('==发送回复 afterSubmit result:', result);
-                        // 发送成功后的回调
-                        setReplyText('');
-                        setIsSubmitting(false);
-                        dispatch(clearActiveReplyAction()); // 发送成功后清除活跃状态
-                    }
-                }));
-                console.log('==发送回复 response:', response);
-                if (response?.error) {
-                    console.error('==发送回复失败:', response.error);
-                    setIsSubmitting(false);
-                }
-            } catch (error) {
-                console.error('发送回复时出错:', error);
-                setIsSubmitting(false);
-            }
-        } else {
-            console.log('==条件不满足，不执行提交');
-            console.log('==replyText.trim():', replyText.trim());
-            console.log('==!isSubmitting:', !isSubmitting);
-        }
+        //     // 发送回复消息
+        //     const response = await dispatch(onSubmit(draft, {
+        //         afterSubmit: (result) => {
+        //             console.log('==发送回复 afterSubmit result:', result);
+        //             // 发送成功后的回调
+        //             // setReplyText('');
+        //             // setIsSubmitting(false);
+        //             dispatch(clearActiveReplyAction()); // 发送成功后清除活跃状态
+        //         }
+        //     }));
+        //     console.log('==发送回复 response:', response);
+        //     if (response?.error) {
+        //         console.error('==发送回复失败:', response.error);
+        //         // setIsSubmitting(false);
+        //     }
+        //     return response;
+        // } catch (error) {
+        //     console.error('发送回复时出错:', error);
+        //     // setIsSubmitting(false);
+        //     return {error};
+        // }
     };
 
     return (
@@ -185,7 +279,7 @@ const CommentFooter = ({ post, children, className }: CommentFooterProps) => {
                     </TextButton>
                 </ReplyButton>
             </ActionsContainer>
-            <InputContainer isVisible={!!isInputVisible}>
+            {/* <InputContainer isVisible={!!isInputVisible}>
                 <TextArea
                     placeholder="输入评论..."
                     value={replyText}
@@ -199,17 +293,14 @@ const CommentFooter = ({ post, children, className }: CommentFooterProps) => {
                 />
                 <SendButton
                     onClick={() => {
-                        console.log('==SendButton clicked, replyText:', replyText);
-                        console.log('==SendButton disabled state:', isSubmitting || !replyText.trim());
-                        console.log('==isSubmitting:', isSubmitting);
-                        console.log('==!replyText.trim():', !replyText.trim());
                         handleSendClick();
                     }}
                     disabled={isSubmitting || !replyText.trim()}
                 >
                     {isSubmitting ? '发送中...' : '发送'}
                 </SendButton>
-            </InputContainer>
+            </InputContainer> */}
+            <CommentInputEditer visible={!!isInputVisible} post={post} afterSubmit={afterSubmit} />
         </CommentFooterContainer>
     )
 }
